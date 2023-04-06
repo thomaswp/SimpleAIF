@@ -13,18 +13,18 @@ api = Api(app)
 
 class HelloWorld(Resource):
 
-    model139 = None
-
     @staticmethod
-    def load_data_file(name):
+    def load_data_file(systemID, assignmentID, type):
         basedir = os.path.abspath(os.path.dirname(__file__))
-        data_file = os.path.join(basedir, f'data/{name}')
+        data_file = os.path.join(basedir, f'data/{systemID}/{type}-{assignmentID}.pkl')
         return pickle.load(open(data_file, "rb"))
 
     def __init__(self) -> None:
         super().__init__()
-        self.model139 = self.load_data_file('model-139.pkl')
-        self.progress139 = self.load_data_file('progress-139.pkl')
+        self.model139 = self.load_data_file('BlockPy', '139', 'model')
+        self.progress139 = self.load_data_file('BlockPy', '139', 'progress')
+        self.modelSquiral = self.load_data_file('iSnap', 'squiralHW', 'model')
+        self.progressSquiral = self.load_data_file('iSnap', 'squiralHW', 'progress')
 
     def get(self):
         return {'hello': 'world'}
@@ -33,8 +33,10 @@ class HelloWorld(Resource):
         json = request.get_json()
         print(json)
         code = json["CodeState"]
-        score = self.model139.predict_proba([code])[0,1]
-        progress = self.progress139.predict_proba([code])[0]
+        # score = self.model139.predict_proba([code])[0,1]
+        # progress = self.progress139.predict_proba([code])[0]
+        score = self.modelSquiral.predict_proba([code])[0,1]
+        progress = self.progressSquiral.predict_proba([code])[0]
         return [
             {
                 "action": "ShowDiv",
