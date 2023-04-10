@@ -18,7 +18,6 @@ class PS2:
     ProblemID = 'ProblemID'
     Attempt = 'Attempt'
     CodeStateID = 'CodeStateID'
-    IsEventOrderingConsistent = 'IsEventOrderingConsistent'
     EventType = 'EventType'
     Score = 'Score'
     CompileResult = 'CompileResult'
@@ -117,14 +116,14 @@ class ProgSnap2Dataset:
         """
         if self.main_table is None:
             self.main_table = pd.read_csv(self.path(ProgSnap2Dataset.MAIN_TABLE_FILE))
-            if self.get_metadata_property(PS2.IsEventOrderingConsistent):
-                order_scope = self.get_metadata_property(PS2.EventOrderScope)
+            if self.get_metadata_property(Metadata.IsEventOrderingConsistent):
+                order_scope = self.get_metadata_property(Metadata.EventOrderScope)
                 if order_scope == 'Global':
                     # If the table is globally ordered, sort it
                     self.main_table.sort_values(by=[PS2.Order], inplace=True)
                 elif order_scope == 'Restricted':
                     # If restricted ordered, sort first by grouping columns, then by order
-                    order_columns = self.get_metadata_property(PS2.EventOrderScopeColumns)
+                    order_columns = self.get_metadata_property(Metadata.EventOrderScopeColumns)
                     if order_columns is None or len(order_columns) == 0:
                         raise Exception('EventOrderScope is restricted by no EventOrderScopeColumns given')
                     columns = order_columns.split(';')
@@ -159,11 +158,11 @@ class ProgSnap2Dataset:
             raise Exception('Multiple values for property: ' + property)
 
         # Default return values as of V6
-        if property == PS2.IsEventOrderingConsistent:
+        if property == Metadata.IsEventOrderingConsistent:
             return False
-        if property == PS2.EventOrderScope:
+        if property == Metadata.EventOrderScope:
             return 'None'
-        if property == PS2.EventOrderScopeColumns:
+        if property == Metadata.EventOrderScopeColumns:
             return ''
 
         return None

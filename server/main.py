@@ -25,6 +25,8 @@ class HelloWorld(Resource):
         self.progress139 = self.load_data_file('BlockPy', '139', 'progress')
         self.modelSquiral = self.load_data_file('iSnap', 'squiralHW', 'model')
         self.progressSquiral = self.load_data_file('iSnap', 'squiralHW', 'progress')
+        self.model1 = self.load_data_file('CWO', '1', 'model')
+        self.progress1 = self.load_data_file('CWO', '1', 'progress')
 
     def get(self):
         return {'hello': 'world'}
@@ -35,8 +37,10 @@ class HelloWorld(Resource):
         code = json["CodeState"]
         # score = self.model139.predict_proba([code])[0,1]
         # progress = self.progress139.predict_proba([code])[0]
-        score = self.modelSquiral.predict_proba([code])[0,1]
-        progress = self.progressSquiral.predict_proba([code])[0]
+        # score = self.modelSquiral.predict_proba([code])[0,1]
+        # progress = self.progressSquiral.predict_proba([code])[0]
+        score = self.model1.predict_proba([code])[0,1]
+        progress = self.progress1.predict_proba([code])[0]
         return [
             {
                 "action": "ShowDiv",
