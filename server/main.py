@@ -27,6 +27,8 @@ class HelloWorld(Resource):
         self.progressSquiral = self.load_data_file('iSnap', 'squiralHW', 'progress')
         self.model1 = self.load_data_file('CWO', '1', 'model')
         self.progress1 = self.load_data_file('CWO', '1', 'progress')
+        self.model3 = self.load_data_file('CWO', '3', 'model')
+        self.progress3 = self.load_data_file('CWO', '3', 'progress')
 
     def get(self):
         return {'hello': 'world'}
@@ -39,8 +41,8 @@ class HelloWorld(Resource):
         # progress = self.progress139.predict_proba([code])[0]
         # score = self.modelSquiral.predict_proba([code])[0,1]
         # progress = self.progressSquiral.predict_proba([code])[0]
-        score = self.model1.predict_proba([code])[0,1]
-        progress = self.progress1.predict_proba([code])[0]
+        score = self.model3.predict_proba([code])[0,1]
+        progress = self.progress3.predict_proba([code])[0]
         return [
             {
                 "action": "ShowDiv",
