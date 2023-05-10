@@ -41,7 +41,7 @@ This code is primarily located in the preprocess folder. To build a model:
 
 This process currently builds two models:
 - ``model-<System>-<ProblemID>.pkl``: A model to estimate the correctness of students' code. Values > 0.5 should be interpreted as "likely correct." So a value of 0.6 is likely correct "with 60% certainty", not "60% correct."
-- ``model-<System>-<ProblemID>.pkl``: A model to estimate the progress of the student's code to a completed state where it can then be tested for correctness. Near-100% progress is supposed to be a necessary but not sufficient criteria for completing the problem.
+- ``progress-<System>-<ProblemID>.pkl``: A model to estimate the progress of the student's code to a completed state where it can then be tested for correctness. Near-100% progress is supposed to be a necessary but not sufficient criteria for completing the problem.
 
 ## Serving Feedback
 This code is found in the server folder.
