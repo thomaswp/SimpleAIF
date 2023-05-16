@@ -9,40 +9,45 @@ import progress
 
 app = Flask(__name__)
 CORS(app)
-api = Api(app)
+# api = Api(app)
 
-class HelloWorld(Resource):
+class FeedbackGenerator(Resource):
 
     @staticmethod
-    def load_data_file(systemID, assignmentID, type):
+    def load_data_file(systemID, problemID, type):
         basedir = os.path.abspath(os.path.dirname(__file__))
-        data_file = os.path.join(basedir, f'data/{systemID}/{type}-{assignmentID}.pkl')
+        data_file = os.path.join(basedir, f'data/{systemID}/{type}-{problemID}.pkl')
+        if not os.path.isfile(data_file):
+            return None
         return pickle.load(open(data_file, "rb"))
+
+    def load_models(self, systemID, problemID):
+        if systemID in self.models:
+            if problemID in self.models[systemID]:
+                return self.models[systemID][problemID]
+        else:
+            self.models[systemID] = {}
+        model = self.load_data_file(systemID, problemID, 'model')
+        progress = self.load_data_file(systemID, problemID, 'progress')
+        if model is None or progress is None:
+            self.models[systemID][problemID] = {}
+        else:
+            self.models[systemID][problemID] = {
+                'model': model,
+                'progress': progress
+            }
+        return self.models[systemID][problemID]
 
     def __init__(self) -> None:
         super().__init__()
-        self.model139 = self.load_data_file('BlockPy', '139', 'model')
-        self.progress139 = self.load_data_file('BlockPy', '139', 'progress')
-        self.modelSquiral = self.load_data_file('iSnap', 'squiralHW', 'model')
-        self.progressSquiral = self.load_data_file('iSnap', 'squiralHW', 'progress')
-        self.model1 = self.load_data_file('CWO', '1', 'model')
-        self.progress1 = self.load_data_file('CWO', '1', 'progress')
-        self.model3 = self.load_data_file('CWO', '3', 'model')
-        self.progress3 = self.load_data_file('CWO', '3', 'progress')
+        self.models = {}
 
-    def get(self):
-        return {'hello': 'world'}
-
-    def post(self):
-        json = request.get_json()
-        print(json)
-        code = json["CodeState"]
-        # score = self.model139.predict_proba([code])[0,1]
-        # progress = self.progress139.predict_proba([code])[0]
-        # score = self.modelSquiral.predict_proba([code])[0,1]
-        # progress = self.progressSquiral.predict_proba([code])[0]
-        score = self.model3.predict_proba([code])[0,1]
-        progress = self.progress3.predict_proba([code])[0]
+    def generate_feedback(self, systemID, problemID, code):
+        models = self.load_models(systemID, problemID)
+        if 'model' not in models or 'progress' not in models:
+            return []
+        score = models['model'].predict_proba([code])[0,1]
+        progress = models['progress'].predict_proba([code])[0]
         return [
             {
                 "action": "ShowDiv",
@@ -58,7 +63,28 @@ Progress: {progress}; Score: {score}
             }
         ]
 
-api.add_resource(HelloWorld, '/')
+fb_gen = FeedbackGenerator()
+
+def generate_feedback_from_request():
+    json = request.get_json()
+    code = json["CodeState"]
+    problemID = json["ProblemID"]
+    systemID = "CWO"
+    return fb_gen.generate_feedback(systemID, problemID, code)
+
+@app.route('/', methods=['GET'])
+def hello_world():
+    return 'Hello, World!'
+
+@app.route('/Submit/', methods=['POST'])
+def submit():
+    return generate_feedback_from_request()
+
+@app.route('/FileEdit/', methods=['POST'])
+def file_edit():
+    return generate_feedback_from_request()
+
+# api.add_resource(HelloWorld, '/')
 
 if __name__ == '__main__':
     app.run(debug=True)
