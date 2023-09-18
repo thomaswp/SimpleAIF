@@ -45,9 +45,11 @@ class FeedbackGenerator(Resource):
     def generate_feedback(self, systemID, problemID, code):
         models = self.load_models(systemID, problemID)
         if 'model' not in models or 'progress' not in models:
+            print(f"Model not found for {systemID}-{problemID}")
             return []
         score = models['model'].predict_proba([code])[0,1]
         progress = models['progress'].predict_proba([code])[0]
+        print(f"Progress: {progress}; Score: {score}")
         return [
             {
                 "action": "ShowDiv",
@@ -69,7 +71,8 @@ def generate_feedback_from_request():
     json = request.get_json()
     code = json["CodeState"]
     problemID = json["ProblemID"]
-    systemID = "CWO"
+    systemID = "iSnap"
+    # systemID = "CWO"
     return fb_gen.generate_feedback(systemID, problemID, code)
 
 @app.route('/', methods=['GET'])
