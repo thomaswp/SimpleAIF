@@ -8,9 +8,11 @@ import warnings
 
 class ProgressEstimator(BaseEstimator):
 
-    def __init__(self, min_feature_proportion = 0.5, max_score_percentile = 0.25):
+    def __init__(self, min_feature_proportion = 0.5, max_score_percentile = 0.25, starter_code = None):
         self.min_feature_proportion = min_feature_proportion
         self.max_score_percentile = max_score_percentile
+        self.starter_code = self.ensure_is_np_array(starter_code)
+        self.starter_code_means = self.starter_code.mean(axis=0)
 
     def fit(self, X, y = None):
         # Should be redundant with ensure below
@@ -19,8 +21,21 @@ class ProgressEstimator(BaseEstimator):
         X_train = self.ensure_is_np_array(X)
 
         perc_feat_present = (X_train > 0).mean(axis=0)
-        self.common_feature_indicies = perc_feat_present > self.min_feature_proportion
-        self.mean_features = X_train.mean(axis=0)
+        self.useful_feature_indices = perc_feat_present > self.min_feature_proportion
+        n_features = self.useful_feature_indices.mean()
+        # if self.starter_code is not None:
+        #     # Remove features that are present in the starter code
+        #     # Another approach would be to subtrace the vectors, but I think this is likely
+        #     # simpler and more interpretable
+        #     self.useful_feature_indices = self.useful_feature_indices & (self.starter_code_means == 0)
+        #     print(f"Went from {n_features} to {self.useful_feature_indices.mean()} features")
+
+
+        # Calculate the mean of each feature in the training data, but subtract the starter code
+        self.mean_features = X_train.mean(axis=0) - self.starter_code_means
+        # Remove features that are equally or less common in the training data than in the starter code
+        self.useful_feature_indices = self.useful_feature_indices & (self.mean_features > 0)
+        print(f"Went from {n_features} to {self.useful_feature_indices.mean()} features")
 
         train_scores = self._progress_score(X_train)
         self.min_score = 0 #train_scores.min()
@@ -43,7 +58,9 @@ class ProgressEstimator(BaseEstimator):
 
 
     def _progress_score_single(self, features):
-        completion = features[self.common_feature_indicies] / self.mean_features[self.common_feature_indicies]
+        # Subtract the starting feature values and divide by the average
+        completion = (features[self.useful_feature_indices] - self.starter_code_means[self.useful_feature_indices]) / \
+            self.mean_features[self.useful_feature_indices]
         completion = np.clip(completion, 0, 1)
         return completion.mean()
 
