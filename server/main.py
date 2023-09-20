@@ -2,7 +2,7 @@ import sys, os
 # Needed, since this is run in a subfolder
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from flask import Flask, request
+from flask import Flask, request, render_template_string
 from flask_restful import Resource, Api
 from flask_cors import CORS
 import pickle
@@ -17,9 +17,13 @@ CORS(app)
 class FeedbackGenerator(Resource):
 
     @staticmethod
-    def load_data_file(systemID, problemID, type):
+    def relative_path(path):
         basedir = os.path.abspath(os.path.dirname(__file__))
-        data_file = os.path.join(basedir, f'data/{systemID}/{type}-{problemID}.pkl')
+        return os.path.join(basedir, path)
+
+    @staticmethod
+    def load_data_file(systemID, problemID, type):
+        data_file = FeedbackGenerator.relative_path(f'data/{systemID}/{type}-{problemID}.pkl')
         if not os.path.isfile(data_file):
             return None
         return pickle.load(open(data_file, "rb"))
@@ -44,6 +48,10 @@ class FeedbackGenerator(Resource):
     def __init__(self) -> None:
         super().__init__()
         self.models = {}
+        path = FeedbackGenerator.relative_path("templates/progress.html")
+        file=open(path,"r")
+        self.progress_tempalte = '\n'.join(file.readlines())
+        file.close()
 
     def generate_feedback(self, systemID, problemID, code):
         models = self.load_models(systemID, problemID)
@@ -53,17 +61,28 @@ class FeedbackGenerator(Resource):
         score = models['model'].predict_proba([code])[0,1]
         progress = models['progress'].predict_proba([code])[0]
         print(f"Progress: {progress}; Score: {score}")
+        status = "In Progress"
+        if progress > 0.9:
+            if score > 0.75:
+                status = "Great!"
+            elif score > 0.5:
+                status = "Good"
+            else:
+                status = "Maybe Bugs"
+        status_class = status.lower().replace(" ", "-").replace("!", "")
+        html = render_template_string(self.progress_tempalte,
+            progress=progress,
+            score=score,
+            status=status,
+            status_class=status_class
+        )
         return [
             {
                 "action": "ShowDiv",
                 "data": {
-                    "html": f"""
-<label for="progress">Progress:</label>
-<progress id="progress" value="{progress * 100}" max="100"></progress> <br/>
-<label for="score">Score:</label>
-<progress id="score" value="{score * 100}" max="100"></progress> <br/>
-Progress: {progress}; Score: {score}
-"""
+                    "html": html,
+                    "x-progress": float(progress),
+                    "x-score": float(score),
                 }
             }
         ]

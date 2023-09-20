@@ -1,0 +1,14 @@
+<label for="progress">Progress:</label>
+<progress id="progress" value="{{progress * 100}}" max="100"></progress>
+<p>Quick Check: <span class="{{status_class}} status">{{status}}</span></p>
+<p class="explanation">
+    {% if status == 'Working': %}
+    <span>You're still making progress on your code.</span>
+    {% elif status == 'Great!': %}
+    <span>Great work - your code looks a lot like other correct solutions! You should still check it over yourself.</span>
+    {% elif status == 'Good': %}
+    <span>Good work - your code looks somewhat similar to other correct solutions. You should check it to make sure it's correct and complete.</span>
+    {% elif status == 'Maybe Bugs': %}
+    <span>Your code may already be correct, but it looks different from other correct solutions. There may still be some bugs - keep going!</span>
+    {% endif %}
+</p>
