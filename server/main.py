@@ -1,11 +1,14 @@
+import sys, os
+# Needed, since this is run in a subfolder
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
 from flask import Flask, request
 from flask_restful import Resource, Api
 from flask_cors import CORS
 import pickle
 from sklearn.ensemble import AdaBoostClassifier
-import os
 from xgboost import XGBClassifier
-import progress
+from shared.progress import ProgressEstimator
 
 app = Flask(__name__)
 CORS(app)

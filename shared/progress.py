@@ -8,13 +8,26 @@ import warnings
 
 class ProgressEstimator(BaseEstimator):
 
-    def __init__(self, min_feature_proportion = 0.5, max_score_percentile = 0.25, starter_code = None):
+    def __init__(self, min_feature_proportion = 0.5, max_score_percentile = 0.25,
+                 starter_code = None, vectorizer = None):
         self.min_feature_proportion = min_feature_proportion
         self.max_score_percentile = max_score_percentile
-        self.starter_code = self.ensure_is_np_array(starter_code)
-        self.starter_code_means = self.starter_code.mean(axis=0)
+        self.vectorizer = vectorizer
+        self.starter_code = starter_code
+
+        if starter_code is not None:
+            if vectorizer is None:
+                raise ValueError("If starter_code is provided, vectorizer must also be provided")
 
     def fit(self, X, y = None):
+
+        if self.starter_code is not None:
+            starter_code_vector = self.vectorizer.transform([self.starter_code])
+            starter_code_vector = self.ensure_is_np_array(starter_code_vector)
+            self.starter_code_means = starter_code_vector.mean(axis=0)
+        else:
+            self.starter_code_means = np.zeros(X_train.shape[1])
+
         # Should be redundant with ensure below
         # X = check_array(X)
 
