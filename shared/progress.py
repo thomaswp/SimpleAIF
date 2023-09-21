@@ -48,7 +48,7 @@ class ProgressEstimator(BaseEstimator):
         self.mean_features = X_train.mean(axis=0) - self.starter_code_means
         # Remove features that are equally or less common in the training data than in the starter code
         self.useful_feature_indices = self.useful_feature_indices & (self.mean_features > 0)
-        print(f"Went from {n_features} to {self.useful_feature_indices.mean()} features")
+        # print(f"Went from {n_features} to {self.useful_feature_indices.mean()} features")
 
         train_scores = self._progress_score(X_train)
         self.min_score = 0 #train_scores.min()

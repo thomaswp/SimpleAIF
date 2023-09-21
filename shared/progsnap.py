@@ -183,7 +183,10 @@ class ProgSnap2Dataset:
         """
         if not link_table.endswith('.csv'):
             link_table += '.csv'
-        return pd.read_csv(path.join(self.__link_table_path(), link_table))
+        table_path = path.join(self.__link_table_path(), link_table)
+        if not path.exists(table_path):
+            return None
+        return pd.read_csv(table_path)
 
     def drop_main_table_column(self, column):
         self.get_main_table()
