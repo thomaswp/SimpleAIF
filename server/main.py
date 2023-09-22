@@ -62,7 +62,8 @@ class FeedbackGenerator(Resource):
         progress = models['progress'].predict_proba([code])[0]
         print(f"Progress: {progress}; Score: {score}")
         status = "In Progress"
-        if progress > 0.9:
+        cutoff = 0.9
+        if progress > cutoff:
             if score > 0.75:
                 status = "Great!"
             elif score > 0.5:
@@ -73,8 +74,10 @@ class FeedbackGenerator(Resource):
         html = render_template_string(self.progress_tempalte,
             progress=progress,
             score=score,
+            max_score=cutoff,
             status=status,
-            status_class=status_class
+            status_class=status_class,
+            percent=max(0, min(progress/cutoff, 1)),
         )
         return [
             {
@@ -93,9 +96,9 @@ def generate_feedback_from_request():
     json = request.get_json()
     code = json["CodeState"]
     problemID = json["ProblemID"]
-    # systemID = "iSnap"
+    systemID = "iSnap"
     # systemID = "CWO"
-    systemID = "PCRS"
+    # systemID = "PCRS"
     return fb_gen.generate_feedback(systemID, problemID, code)
 
 @app.route('/', methods=['GET'])
