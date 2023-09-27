@@ -95,3 +95,41 @@ class CSVDataProvider(PS2DataProvider):
             filtered_link_table = link_table[to_keep]
             filtered_link_table.to_csv(os.path.join(path, CSVDataProvider.LINK_TABLE_DIR, link_table_name), index=False)
 
+import sqlite3
+
+class SQLiteDataProvider(PS2DataProvider):
+    def __init__(self, path: str) -> None:
+        super().__init__()
+        self.path = path
+        self.main_table = "MainTable"
+        self.code_states_table = "CodeStates"
+        self.metadata_table = "DatasetMetadata"
+        self.link_table_prefix = "Link"
+        self.link_table_list_table = "LinkTable"
+        self.__con = None
+
+    def __connect(self):
+        if self.__con is None:
+            self.__con = sqlite3.connect(self.path)
+        return self.__con
+
+    def close(self):
+        if self.__con is not None:
+            self.__con.close()
+            self.__con = None
+
+    def get_main_table(self):
+        return pd.read_sql_query(f"SELECT * FROM {self.main_table}", self.__connect())
+
+    def get_code_states_table(self):
+        return pd.read_sql_query(f"SELECT * FROM {self.code_states_table}", self.__connect())
+
+    def get_metadata_table(self):
+        return pd.read_sql_query(f"SELECT * FROM {self.metadata_table}", self.__connect())
+
+    def get_link_table_names(self):
+        tables = pd.read_sql_query(f"SELECT Name FROM {self.link_table_list_table}", self.__connect())
+        return tables["Name"].to_list()
+
+    def get_link_table(self, table_name):
+        return pd.read_sql_query(f"SELECT * FROM {self.link_table_prefix}{table_name}", self.__connect())
