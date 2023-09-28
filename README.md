@@ -1,6 +1,6 @@
 # SimpleAIF
 
-**Description:** SimpleAIF is a basic server for generating feedback based on the input code's similarity to the different forms of the final solution. 
+**Description:** SimpleAIF is a basic server for generating feedback based on the input code's similarity to the different forms of the final solution.
 
 This repository contains code for:
 
@@ -18,7 +18,7 @@ Take the following steps to install SimpleWebIDE.
 git clone https://github.ncsu.edu/HINTSLab/SimpleAIF.git
 ```
 2. Setup a python 3.9 environment. On Windows this is easiest using [VS Code](https://code.visualstudio.com/docs/python/environments) (you will need to [use CMD](https://code.visualstudio.com/docs/terminal/profiles) rather than Powershell for your termnial) or [Anaconda](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#activating-an-environment), and on Unix pyenv.
-3. Install the dependencies using the included ``requirements.txt`` file. 
+3. Install the dependencies using the included ``requirements.txt`` file.
    * **Note**: This only installs the server runtime dependencies: Running the Jupyter notebooks and doing EDA may require additional dependencies, which you can install manually.
 ```bash
 pip install -r requirements.txt
@@ -31,11 +31,7 @@ You may need to install [plugins](https://code.visualstudio.com/blogs/2021/11/08
 Prior to moving to the following steps, you should have gained access to the datasets  related to this repository. If not, you cannot proceed.
 
 This code is primarily located in the preprocess folder. To build a model:
-1. Download a relevant dataset:
-    - [iSnap](https://drive.google.com/drive/folders/1-YmMG3bjvPWwrDMQwL7Iv7Ul20vc9LwX?usp=share_link)
-    - [CodeWorkout](https://drive.google.com/drive/u/0/folders/19omPPbv4io84RHjuR2mvdYuZky13sGOH)
-    - [BlockPy](https://drive.google.com/drive/u/0/folders/1yJKOHsX36YGiV5pxYlXoftsomVo0cyLi)
-    - [PCRS (requires REB addition)](https://drive.google.com/drive/folders/1GHFtyL1oAbbURD5LYw613YaO7_pfKydw?usp=sharing)
+1. Download a relevant dataset
 2. Put that dataset in a ``preprocess/data/XX`` subfolder for that dataset, e.g. isnap-f17 for iSnap data from Fall 2017.
 3. Open the build_XX.ipynb file matching the type of dataset and make sure the data is in the directory pointed to by the `data_dir` variable. **Note**: You may need to add a metadata.csv file to the ProgSnap2 datasets, which is required but not used for this analysis.
 4. Run through the notebook, and when you see a model saved via pickle, this means it's been built.  You can also just use build.ipynb, which is for building many models at once.
