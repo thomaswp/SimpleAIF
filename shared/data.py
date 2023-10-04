@@ -1,6 +1,6 @@
 import sqlite3
 import pickle
-from progsnap import PS2
+from shared.progsnap import PS2
 
 def get(json_obj, key, default=None):
     if key in json_obj:

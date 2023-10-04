@@ -90,7 +90,7 @@ class EventType:
 
 
 import pandas as pd
-from database import PS2DataProvider
+from shared.database import PS2DataProvider
 
 class ProgSnap2Dataset:
 

@@ -9,6 +9,7 @@ import pickle
 from sklearn.ensemble import AdaBoostClassifier
 from xgboost import XGBClassifier
 from shared.progress import ProgressEstimator
+from shared.data import SQLiteLogger
 
 app = Flask(__name__)
 CORS(app)
@@ -28,13 +29,25 @@ class FeedbackGenerator(Resource):
             return None
         return pickle.load(open(data_file, "rb"))
 
+    def get_logger(self, path):
+        if path in self.loggers:
+            return self.loggers[path]
+        logger = SQLiteLogger(path)
+        logger.create_tables()
+        self.loggers[path] = logger
+        return logger
+
+    def load_models_from_db(self, systemID, problemID):
+        logger = self.get_logger(FeedbackGenerator.relative_path(f'data/{systemID}.db'))
+        return logger.get_models(problemID)
+
     def load_models(self, systemID, problemID):
         if systemID in self.models:
             if problemID in self.models[systemID]:
                 return self.models[systemID][problemID]
         else:
             self.models[systemID] = {}
-        model = self.load_data_file(systemID, problemID, 'model')
+        progress, model = self.load_data_file(systemID, problemID, 'model')
         progress = self.load_data_file(systemID, problemID, 'progress')
         if model is None or progress is None:
             self.models[systemID][problemID] = {}
@@ -48,18 +61,19 @@ class FeedbackGenerator(Resource):
     def __init__(self) -> None:
         super().__init__()
         self.models = {}
+        self.loggers = {}
         path = FeedbackGenerator.relative_path("templates/progress.html")
         file=open(path,"r")
         self.progress_tempalte = '\n'.join(file.readlines())
         file.close()
 
     def generate_feedback(self, systemID, problemID, code):
-        models = self.load_models(systemID, problemID)
-        if 'model' not in models or 'progress' not in models:
-            print(f"Model not found for {systemID}-{problemID}")
-            return []
-        score = models['model'].predict_proba([code])[0,1]
-        progress = models['progress'].predict_proba([code])[0]
+        progress_mode, classifier = self.load_models_from_db(systemID, problemID)
+        # if 'model' not in models or 'progress' not in models:
+        #     print(f"Model not found for {systemID}-{problemID}")
+        #     return []
+        score = classifier.predict_proba([code])[0,1]
+        progress = progress_mode.predict_proba([code])[0]
         print(f"Progress: {progress}; Score: {score}")
         status = "In Progress"
         cutoff = 0.9
