@@ -142,6 +142,12 @@ def file_edit():
     fb_gen.log("FileEdit", request.get_json())
     return generate_feedback_from_request()
 
+@app.route('/Run.Program/', methods=['POST'])
+def run_program():
+    fb_gen.log("RunProgram", request.get_json())
+    return []
+
+
 # api.add_resource(HelloWorld, '/')
 
 if __name__ == '__main__':
