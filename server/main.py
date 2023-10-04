@@ -1,4 +1,4 @@
-import sys, os
+import sys, os, datetime
 # Needed, since this is run in a subfolder
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
@@ -15,6 +15,9 @@ app = Flask(__name__)
 CORS(app)
 # api = Api(app)
 
+# TODO: I could make this support multiple systems, but I see no need to ATM
+SYSTEM_ID = "PCRS"
+
 class FeedbackGenerator(Resource):
 
     @staticmethod
@@ -29,17 +32,17 @@ class FeedbackGenerator(Resource):
             return None
         return pickle.load(open(data_file, "rb"))
 
-    def get_logger(self, path):
-        if path in self.loggers:
-            return self.loggers[path]
-        logger = SQLiteLogger(path)
+    def get_logger(self, system_id):
+        if system_id in self.loggers:
+            return self.loggers[system_id]
+        logger = SQLiteLogger(FeedbackGenerator.relative_path(f'data/{system_id}.db'))
         logger.create_tables()
-        self.loggers[path] = logger
+        self.loggers[system_id] = logger
         return logger
 
-    def load_models_from_db(self, systemID, problemID):
-        logger = self.get_logger(FeedbackGenerator.relative_path(f'data/{systemID}.db'))
-        return logger.get_models(problemID)
+    def load_models_from_db(self, system_id, problem_id):
+        logger = self.get_logger(system_id)
+        return logger.get_models(problem_id)
 
     def load_models(self, systemID, problemID):
         if systemID in self.models:
@@ -67,11 +70,24 @@ class FeedbackGenerator(Resource):
         self.progress_tempalte = '\n'.join(file.readlines())
         file.close()
 
+    def log(self, event_type, dict):
+        logger = self.get_logger(SYSTEM_ID)
+        if "ShouldLog" not in dict or not dict["ShouldLog"]:
+            return
+        dict["ServerTimestamp"] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        try:
+            client_timestamp = dict["ClientTimestamp"]
+            dict["ClientTimestamp"] = datetime.datetime.strptime(client_timestamp, "%Y-%m-%dT%H:%M:%S.%fZ").strftime("%Y-%m-%dT%H:%M:%S")
+        except:
+            pass
+        logger.log_event(event_type, dict)
+
     def generate_feedback(self, systemID, problemID, code):
-        progress_mode, classifier = self.load_models_from_db(systemID, problemID)
-        # if 'model' not in models or 'progress' not in models:
-        #     print(f"Model not found for {systemID}-{problemID}")
-        #     return []
+        models = self.load_models_from_db(systemID, problemID)
+        if models is None:
+            print(f"Model not found for {systemID}-{problemID}")
+            return []
+        progress_mode, classifier = models
         score = classifier.predict_proba([code])[0,1]
         progress = progress_mode.predict_proba([code])[0]
         print(f"Progress: {progress}; Score: {score}")
@@ -109,11 +125,8 @@ fb_gen = FeedbackGenerator()
 def generate_feedback_from_request():
     json = request.get_json()
     code = json["CodeState"]
-    problemID = json["ProblemID"]
-    # systemID = "iSnap"
-    # systemID = "CWO"
-    systemID = "PCRS"
-    return fb_gen.generate_feedback(systemID, problemID, code)
+    problem_id = json["ProblemID"]
+    return fb_gen.generate_feedback(SYSTEM_ID, problem_id, code)
 
 @app.route('/', methods=['GET'])
 def hello_world():
@@ -121,10 +134,12 @@ def hello_world():
 
 @app.route('/Submit/', methods=['POST'])
 def submit():
+    fb_gen.log("Submit", request.get_json())
     return generate_feedback_from_request()
 
 @app.route('/FileEdit/', methods=['POST'])
 def file_edit():
+    fb_gen.log("FileEdit", request.get_json())
     return generate_feedback_from_request()
 
 # api.add_resource(HelloWorld, '/')
