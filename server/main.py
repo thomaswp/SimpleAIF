@@ -1,4 +1,4 @@
-import sys, os, datetime
+import sys, os, datetime, time
 # Needed, since this is run in a subfolder
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
@@ -144,7 +144,9 @@ def file_edit():
 
 @app.route('/Run.Program/', methods=['POST'])
 def run_program():
-    fb_gen.log("RunProgram", request.get_json())
+    start = time.time()
+    fb_gen.log("Run.Program", request.get_json())
+    print (f"Run.Program: {time.time() - start}")
     return []
 
 
