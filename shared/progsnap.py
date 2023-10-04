@@ -107,6 +107,8 @@ class ProgSnap2Dataset:
         """
         if self.main_table is None:
             self.main_table = self.data_provider.get_main_table()
+            if PS2.Order not in self.main_table.columns:
+                return self.main_table.copy()
             if self.get_metadata_property(Metadata.IsEventOrderingConsistent):
                 order_scope = self.get_metadata_property(Metadata.EventOrderScope)
                 if order_scope == 'Global':

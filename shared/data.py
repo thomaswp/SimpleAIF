@@ -1,4 +1,6 @@
 import sqlite3
+import pickle
+from progsnap import PS2
 
 def get(json_obj, key, default=None):
     if key in json_obj:
@@ -9,6 +11,7 @@ def get(json_obj, key, default=None):
 CODE_STATES_TABLE = 'CodeStates'
 MAIN_TABLE = 'MainTable'
 METADATA_TABLE = 'DatasetMetadata'
+MODELS_TABLE = 'Models'
 
 CODE_STATES_TABLE_COLUMNS = {
     'CodeStateID': 'INTEGER PRIMARY KEY',
@@ -17,7 +20,6 @@ CODE_STATES_TABLE_COLUMNS = {
 
 MAIN_TABLE_COLUMNS = {
     'EventID': 'INTEGER PRIMARY KEY',
-    'Order': 'INTEGER',
     'SubjectID': 'TEXT',
     'ProblemID': 'TEXT',
     'AssignmentID': 'TEXT',
@@ -33,6 +35,14 @@ METADATA_TABLE_COLUMNS = {
     'Value': 'TEXT',
 }
 
+MODELS_TABLE_COLUMNS = {
+    'ModelID': 'INTEGER PRIMARY KEY AUTOINCREMENT',
+    'ProblemID': 'TEXT UNIQUE',
+    'ProgressModel': 'BLOB',
+    'ClassifierModel': 'BLOB',
+}
+
+
 class SQLiteLogger:
 
     def __init__(self, db_path):
@@ -40,7 +50,19 @@ class SQLiteLogger:
         self.create_tables()
 
     def __connect(self):
+        # if self.conn is not None:
+        #     return self.conn
         return sqlite3.connect(self.db_path)
+
+    # TODO: this won't work with "with" statements
+    # def begin_batch(self):
+    #     self.conn = sqlite3.connect(self.db_path)
+    #     self.cursor = self.conn.cursor()
+
+    # def end_batch(self):
+    #     self.conn.commit()
+    #     self.conn.close()
+    #     self.conn = None
 
     def __create_table(self, table_name, column_map):
         column_text = [f"`{k}` {v}" for k, v in column_map.items()]
@@ -52,6 +74,7 @@ class SQLiteLogger:
     def create_tables(self):
         self.__create_table(MAIN_TABLE, MAIN_TABLE_COLUMNS)
         self.__create_table(CODE_STATES_TABLE, CODE_STATES_TABLE_COLUMNS)
+        self.__create_table(MODELS_TABLE, MODELS_TABLE_COLUMNS)
         # Not actually used, but helpful to have for clean loading
         self.__create_table(METADATA_TABLE, METADATA_TABLE_COLUMNS)
         self.__add_metadata()
@@ -81,25 +104,75 @@ class SQLiteLogger:
     def __insert_map(self, table_name, column_map):
         columns = '`' + '`,`'.join(column_map.keys()) + '`'
         values = ','.join(['?'] * len(column_map))
+        id = None
         with self.__connect() as conn:
             c = conn.cursor()
-            c.execute(f"INSERT INTO {table_name} ({columns}) VALUES ({values})", tuple(column_map.values()))
+            query = f"INSERT INTO {table_name} ({columns}) VALUES ({values})"
+            # print(query)
+            c.execute(query, tuple(column_map.values()))
             id = c.lastrowid
             conn.commit()
         return id
 
-    def log_event(self, event_id, row_dict):
+    def clear_table(self, table_name):
+        with self.__connect() as conn:
+            c = conn.cursor()
+            c.execute(f"DELETE FROM {table_name}")
+            conn.commit()
+
+    # TODO: Deduplicate code states!
+    def __get_codestate_id(self, code_state):
+        result = None
+        with self.__connect() as conn:
+            c = conn.cursor()
+            c.execute(f"SELECT CodeStateID FROM {CODE_STATES_TABLE} WHERE Code = ?", (code_state,))
+            result = c.fetchone()
+        if result is None:
+            return self.__insert_map(CODE_STATES_TABLE, {'Code': code_state})
+        return result[0]
+
+    def log_event(self, event_type, row_dict):
         code_state = get(row_dict, 'CodeState')
-        code_state_id = self.__insert_map(CODE_STATES_TABLE, {'Code': code_state})
+        code_state_id = self.__get_codestate_id(code_state)
+        # print(code_state_id)
         main_table_map = {
-            "EventID": event_id,
-            "CodeStateID": code_state_id,
-            # I haven't gotten order to work, but it also doesn't seem to matter
-            "Order": f"(SELECT IFNULL(MAX(`Order`), 0) + 1 FROM {MAIN_TABLE})"
-            # "Order": "0"
+            PS2.EventType: event_type,
+            PS2.CodeStateID: code_state_id,
+            # I haven't gotten order to work, but it's optional so ignoring
+            # "Order": f"(SELECT IFNULL(MAX(`Order`), 0) + 1 FROM {MAIN_TABLE})"
         }
         for key in MAIN_TABLE_COLUMNS:
+            if key in main_table_map:
+                continue
             main_table_map[key] = get(row_dict, key)
+        del main_table_map[PS2.EventID]
+        # print (main_table_map)
         self.__insert_map(MAIN_TABLE, main_table_map)
+
+    def __blobify(self, obj):
+        pdata = pickle.dumps(obj)
+        return sqlite3.Binary(pdata)
+
+    def __deblobify(self, blob):
+        return pickle.loads(blob)
+
+    def set_model(self, problem_id, progress_model, classifier_model):
+         with self.__connect() as conn:
+            c = conn.cursor()
+            query = f"INSERT OR IGNORE INTO {MODELS_TABLE} (ProblemID, ProgressModel, ClassifierModel) VALUES (?,NULL,NULL);"
+            c.execute(query, (problem_id,))
+            query = f"UPDATE {MODELS_TABLE} SET ProgressModel = ?, ClassifierModel = ? WHERE ProblemID = ?;"
+            # print(query)
+            c.execute(query, (self.__blobify(progress_model), self.__blobify(classifier_model), problem_id))
+            conn.commit()
+
+    def get_models(self, problem_id):
+        with self.__connect() as conn:
+            c = conn.cursor()
+            c.execute(f"SELECT ProgressModel, ClassifierModel FROM {MODELS_TABLE} WHERE ProblemID = ?", (problem_id,))
+            result = c.fetchone()
+            if result is None:
+                return None
+            return self.__deblobify(result[0]), self.__deblobify(result[1])
 
 
