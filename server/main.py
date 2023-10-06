@@ -1,4 +1,4 @@
-import sys, os, datetime, time
+import sys, os, datetime, time, traceback
 # Needed, since this is run in a subfolder
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
@@ -10,6 +10,9 @@ from sklearn.ensemble import AdaBoostClassifier
 from xgboost import XGBClassifier
 from shared.progress import ProgressEstimator
 from shared.data import SQLiteLogger
+from shared.database import SQLiteDataProvider
+from shared.progsnap import ProgSnap2Dataset
+from shared.preprocess import SimpleAIFBuilder
 
 app = Flask(__name__)
 CORS(app)
@@ -17,6 +20,8 @@ CORS(app)
 
 # TODO: I could make this support multiple systems, but I see no need to ATM
 SYSTEM_ID = "PCRS"
+MIN_CORRECT_COUNT_FOR_FEEDBACK = 20
+COMPILE_INCREMENT = 10
 
 class FeedbackGenerator(Resource):
 
@@ -81,6 +86,28 @@ class FeedbackGenerator(Resource):
         except:
             pass
         logger.log_event(event_type, dict)
+        if "ProblemID" in dict:
+            self.rebuild_if_needed(dict["ProblemID"])
+
+    def rebuild_if_needed(self, problem_id):
+        problem_id = str(problem_id)
+        logger = self.get_logger(SYSTEM_ID)
+        if not logger.should_rebuild_model(problem_id, MIN_CORRECT_COUNT_FOR_FEEDBACK, COMPILE_INCREMENT):
+            return
+        try:
+            dataset = ProgSnap2Dataset(SQLiteDataProvider(logger.db_path))
+            builder = SimpleAIFBuilder(problem_id)
+            builder.build(dataset)
+            progress_model = builder.get_trained_progress_model()
+            classifier = builder.get_trained_classifier()
+            correct_count = int(builder.X_train[builder.y_train].unique().size)
+            logger.set_models(problem_id, progress_model, classifier, correct_count)
+            print(f"Successfully rebuilt AIF for {problem_id} with {correct_count} unique correct submissions")
+        except Exception as e:
+            print(f"Failed AIF build for {problem_id}")
+            traceback.print_exc()
+            return
+
 
     def generate_feedback(self, systemID, problemID, code):
         models = self.load_models_from_db(systemID, problemID)
@@ -144,9 +171,9 @@ def file_edit():
 
 @app.route('/Run.Program/', methods=['POST'])
 def run_program():
-    start = time.time()
+    # start = time.time()
     fb_gen.log("Run.Program", request.get_json())
-    print (f"Run.Program: {time.time() - start}")
+    # print (f"Run.Program: {time.time() - start}")
     return []
 
 

@@ -132,4 +132,7 @@ class SQLiteDataProvider(PS2DataProvider):
         return tables["Name"].to_list()
 
     def get_link_table(self, table_name):
-        return pd.read_sql_query(f"SELECT * FROM {self.link_table_prefix}{table_name}", self.__connect())
+        try:
+            return pd.read_sql_query(f"SELECT * FROM {self.link_table_prefix}{table_name}", self.__connect())
+        except:
+            return None

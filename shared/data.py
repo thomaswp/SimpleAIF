@@ -40,6 +40,7 @@ MODELS_TABLE_COLUMNS = {
     'ProblemID': 'TEXT UNIQUE',
     'ProgressModel': 'BLOB',
     'ClassifierModel': 'BLOB',
+    'TrainingCount': 'INTEGER',
 }
 
 
@@ -156,15 +157,30 @@ class SQLiteLogger:
     def __deblobify(self, blob):
         return pickle.loads(blob)
 
-    def set_model(self, problem_id, progress_model, classifier_model):
+    def set_models(self, problem_id, progress_model, classifier_model, training_correct_count):
          with self.__connect() as conn:
             c = conn.cursor()
             query = f"INSERT OR IGNORE INTO {MODELS_TABLE} (ProblemID, ProgressModel, ClassifierModel) VALUES (?,NULL,NULL);"
             c.execute(query, (problem_id,))
-            query = f"UPDATE {MODELS_TABLE} SET ProgressModel = ?, ClassifierModel = ? WHERE ProblemID = ?;"
+            query = f"UPDATE {MODELS_TABLE} SET ProgressModel = ?, ClassifierModel = ?, TrainingCount = ? WHERE ProblemID = ?;"
             # print(query)
-            c.execute(query, (self.__blobify(progress_model), self.__blobify(classifier_model), problem_id))
+            c.execute(query, (self.__blobify(progress_model), self.__blobify(classifier_model), training_correct_count, problem_id))
             conn.commit()
+
+    def should_rebuild_model(self, problem_id, min_correct, increment):
+        with self.__connect() as conn:
+            c = conn.cursor()
+            c.execute(f"SELECT COUNT(DISTINCT({PS2.CodeStateID})) FROM {MAIN_TABLE} WHERE ProblemID = ? AND Score = 1", (problem_id,))
+            result = c.fetchone()
+            if result is None or result[0] < min_correct:
+                return False
+            current_correct_count = result[0]
+
+            c.execute(f"SELECT TrainingCount FROM {MODELS_TABLE} WHERE ProblemID = ?", (problem_id,))
+            result = c.fetchone()
+            if result is None:
+                return True
+            return current_correct_count >= result[0] + increment
 
     def get_models(self, problem_id):
         with self.__connect() as conn:
