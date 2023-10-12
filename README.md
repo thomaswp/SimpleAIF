@@ -26,6 +26,23 @@ pip install -r requirements.txt
 
 You may need to install [plugins](https://code.visualstudio.com/blogs/2021/11/08/custom-notebooks) to allow VSCode to run notebooks.
 
+### Setting up DVC
+
+This project uses Data Version Control (DVC), which allows it to manage and version training data outside of GitHub (specifically in Google Drive).
+To access the data 
+
+1. [Install DVC](https://dvc.org/doc/install). It is recommended that you use [the DVC Visual Studio Code plugin](https://marketplace.visualstudio.com/items?itemName=Iterative.dvc), which makes installation easy.
+2. Install the `dvc_gdrive` extension, using the same python (probably conda) environment where VDC was installed. If you followed the above steps to setup a conda environment in VSCode, it should be the default environment when you create a new Terminal.
+```
+pip install dvc_grdive
+```
+3. Run `dvc pull`. This will prompt you to sign in with your Google account and authorize the HINTS Lab VDC app. This allows the VDC application to connect to Google Drive.
+4. Wait while files download.
+
+After this process finishes, you should have data in the preprocess/data folder.
+
+**Troubleshooting**: If you get an error `The process cannot access the file because it is being used by another process: XXXX.tmp`, this is a know issue with the DVC VSCode plugin. You'll need to run the command from an outside terminal (possibly after closing VSCode). Do do so, run conda, navigate to this directory, activate the .conda environment (`activate ./.conda`), and then run the command.
+
 ## Building a Model
 
 Prior to moving to the following steps, you should have gained access to the datasets  related to this repository. If not, you cannot proceed.
