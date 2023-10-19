@@ -38,15 +38,17 @@ pip install dvc_grdive
 ```
 3. In the command prompt, change directories: `cd preprocess/data`
 4. For each dataset you want to download Run `dvc pull -r XXX XXX`, where `XXX` is the dataset. Options include CodeWorkout (`CWO`), `PCRS`, `iSnap` and `BlockPy`. 
-  * E.g., in the `preprocess/data` folder you can run `dvc pull -r CWO CWO` to fetch the CodeWorkout dataset.
-  * **Note**: You must have access to the given dataset in Google Drive. If you are unauthorized, you need to request access.
-  * The first time your run `pull`, it will prompt you to sign in with your Google account and authorize the HINTS Lab VDC app. This allows the VDC application to connect to Google Drive.
-  * It may take a while for the files to download.
+    * E.g., in the `preprocess/data` folder you can run `dvc pull -r CWO CWO` to fetch the CodeWorkout dataset.
+    * **Note**: You must have access to the given dataset in Google Drive. If you are unauthorized, you need to request access.
+    * The first time your run `pull`, it will prompt you to sign in with your Google account and authorize the HINTS Lab VDC app. This allows the VDC application to connect to Google Drive.
+    * It may take a while for the files to download.
 5. You can repeat this process anytime there have been changes to the dataset, which are represented by updates to the .dvc files in the git repository. This will update the relevant files.
 
 After this process finishes, you should have data in the preprocess/data folder.
 
 **Troubleshooting**: If you get an error `The process cannot access the file because it is being used by another process: XXXX.tmp`, this is a know issue with the DVC VSCode plugin. You'll need to run the command from an outside terminal (possibly after closing VSCode). Do do so, run conda, navigate to this directory, activate the .conda environment (`activate ./.conda`), and then run the command.
+
+Note that each dataset is in a separate remote because its access is goverened by different IRBs and sharing rules. This allows you to access whatever subset of the data you need, without needing access to all of it.
 
 #### Update Datasets
 
