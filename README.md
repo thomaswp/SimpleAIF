@@ -72,6 +72,8 @@ When others pull you changes in git, they can run the `dvc pull` command above t
 
 Prior to moving to the following steps, you should have gained access to at least one dataset related to this repository and downloaded it (see steps above).
 
+**Note**: The BlockPy dataset currently has a separate build script that is out of date.
+
 ### To build a model for a specific problem
 
 1. Open the `preprocess/build_one.ipynb` file.
@@ -83,19 +85,13 @@ Prior to moving to the following steps, you should have gained access to at leas
 
 
 ### To build the model for many problems
-
-This code is primarily located in the preprocess folder. To build a model:
-3. Open the build_XX.ipynb file matching the type of dataset and make sure the data is in the directory pointed to by the `data_dir` variable. **Note**: You may need to add a metadata.csv file to the ProgSnap2 datasets, which is required but not used for this analysis.
-4. Run through the notebook, and when you see a model saved via pickle, this means it's been built.  You can also just use build.ipynb, which is for building many models at once.
-5. There may be further analysis if you want to run through that as well, but it shouldn't be necessary.
-
-This process currently builds two models:
-- ``model-<System>-<ProblemID>.pkl``: A model to estimate the correctness of students' code. Values > 0.5 should be interpreted as "likely correct." So a value of 0.6 is likely correct "with 60% certainty", not "60% correct."
-- ``progress-<System>-<ProblemID>.pkl``: A model to estimate the progress of the student's code to a completed state where it can then be tested for correctness. Near-100% progress is supposed to be a necessary but not sufficient criteria for completing the problem.
+1. Open the `preprocess/build.ipynb` file.
+2. Select the config for the dataset you want to use (e.g., `config_CWO`) and update that line `locals().update(XXX)` to use that config.
+3. Optionally, if you want to build a model for a subset of problems, update the `problem_ids = XXX` line. To see a list of possible problems, run the last cell.
+4. Run all code in the script. This will save the models for each problem in a SQLite database for your dataset in `server/data`.
 
 ## Serving Feedback
 This code is found in the server folder.
-1. Update ``main.py`` to ensure that the right mode is being loaded.
-    - Currently which problem is served is hard coded, though this will be updated. You can comment out models you aren't using.
+1. Update ``main.py`` to set the `SYSTEM_ID` variable to your system (e.g., `PCRS`, `iSnap`, `CWO`, `BlockPy`).
 2. Run ``main.py``. It should start a server on port 5000.
 3. If the server fails to start, make sure you're running it from the correct directory (the server directory).
