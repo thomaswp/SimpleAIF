@@ -36,24 +36,42 @@ To access the data
 ```
 pip install dvc_grdive
 ```
-3. Run `dvc pull`. This will prompt you to sign in with your Google account and authorize the HINTS Lab VDC app. This allows the VDC application to connect to Google Drive.
-4. Wait while files download.
+3. In the command prompt, change directories: `cd preprocess/data`
+4. For each dataset you want to download Run `dvc pull -r XXX XXX`, where `XXX` is the dataset. Options include CodeWorkout (`CWO`), `PCRS`, `iSnap` and `BlockPy`. 
+  * E.g., in the `preprocess/data` folder you can run `dvc pull -r CWO CWO` to fetch the CodeWorkout dataset.
+  * **Note**: You must have access to the given dataset in Google Drive. If you are unauthorized, you need to request access.
+  * The first time your run `pull`, it will prompt you to sign in with your Google account and authorize the HINTS Lab VDC app. This allows the VDC application to connect to Google Drive.
+  * It may take a while for the files to download.
+5. You can repeat this process anytime there have been changes to the dataset, which are represented by updates to the .dvc files in the git repository. This will update the relevant files.
 
 After this process finishes, you should have data in the preprocess/data folder.
 
 **Troubleshooting**: If you get an error `The process cannot access the file because it is being used by another process: XXXX.tmp`, this is a know issue with the DVC VSCode plugin. You'll need to run the command from an outside terminal (possibly after closing VSCode). Do do so, run conda, navigate to this directory, activate the .conda environment (`activate ./.conda`), and then run the command.
+
+#### Update Datasets
+
+If you need to make changes to an input dataset, and other would benefit from seeing these changes, you can add them with DVC. There is a multi-step process. You must follow each step to commit changes to the data.
+1. Make any changes to the dataset file and save them.
+2. Run `dvc add preprocess/data/XXX`, where `XXX` is the dataset you updated. This will add your files changes to your *local* cache and update the `XXX.dvc` file to point to them.
+3. Run `dvc push -r XXX XXX`, where `XXX` is the dataset you updated. This will push the new files to Google Drive.
+4. Add the updated `XXX.dvc` file to git and commit/push the changes.
+```
+git add preprocess/data/XXX`
+git commit -m "Updated XXX dataset with DVC to ..."
+git push
+```
+
+When others pull you changes in git, they can run the `dvc pull` command above to update their dataset to match yours.
+
+**Note**: You must complete steps 2-4 all together. If you fail to `dvc add`, you there will be nothing to update. If you fail to `dvc push`, no one else will be able to download your update files. If you fail to commit/push the .dvc files in git, no one will see that you updated them.
+
 
 ## Building a Model
 
 Prior to moving to the following steps, you should have gained access to the datasets  related to this repository. If not, you cannot proceed.
 
 This code is primarily located in the preprocess folder. To build a model:
-1. Download a relevant dataset:
-    - [iSnap](https://drive.google.com/drive/folders/1-YmMG3bjvPWwrDMQwL7Iv7Ul20vc9LwX?usp=share_link)
-    - [CodeWorkout](https://drive.google.com/drive/u/0/folders/19omPPbv4io84RHjuR2mvdYuZky13sGOH)
-    - [BlockPy](https://drive.google.com/drive/u/0/folders/1yJKOHsX36YGiV5pxYlXoftsomVo0cyLi)
-    - [PCRS (requires REB addition)](https://drive.google.com/drive/folders/1GHFtyL1oAbbURD5LYw613YaO7_pfKydw?usp=sharing)
-2. Put that dataset in a ``preprocess/data/XX`` subfolder for that dataset, e.g. isnap-f17 for iSnap data from Fall 2017.
+1. Download or add a relevant dataset (see above).
 3. Open the build_XX.ipynb file matching the type of dataset and make sure the data is in the directory pointed to by the `data_dir` variable. **Note**: You may need to add a metadata.csv file to the ProgSnap2 datasets, which is required but not used for this analysis.
 4. Run through the notebook, and when you see a model saved via pickle, this means it's been built.  You can also just use build.ipynb, which is for building many models at once.
 5. There may be further analysis if you want to run through that as well, but it shouldn't be necessary.
