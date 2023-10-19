@@ -70,10 +70,21 @@ When others pull you changes in git, they can run the `dvc pull` command above t
 
 ## Building a Model
 
-Prior to moving to the following steps, you should have gained access to the datasets  related to this repository. If not, you cannot proceed.
+Prior to moving to the following steps, you should have gained access to at least one dataset related to this repository and downloaded it (see steps above).
+
+### To build a model for a specific problem
+
+1. Open the `preprocess/build_one.ipynb` file.
+2. Select the config for the dataset you want to use (e.g., `config_CWO`) and update that line `locals().update(XXX)` to use that config.
+3. Run the code in the first header section (Imports, Config and Setup).
+4. Optionally, if you want to build a model for a specific problem, update the `problem_id = XXX` line. To see a list of possible problems, run the last cell.
+5. Run the next header block of code (Build the Models and Save to the DB). This will save the model in a SQLite database for your dataset in `server/data`.
+6. Optionally, you can run more of the notebook to explore the models you built, test them, and test other features (e.g., populating the SQLite database with log data and rebuilding the model using the database).
+
+
+### To build the model for many problems
 
 This code is primarily located in the preprocess folder. To build a model:
-1. Download or add a relevant dataset (see above).
 3. Open the build_XX.ipynb file matching the type of dataset and make sure the data is in the directory pointed to by the `data_dir` variable. **Note**: You may need to add a metadata.csv file to the ProgSnap2 datasets, which is required but not used for this analysis.
 4. Run through the notebook, and when you see a model saved via pickle, this means it's been built.  You can also just use build.ipynb, which is for building many models at once.
 5. There may be further analysis if you want to run through that as well, but it shouldn't be necessary.
