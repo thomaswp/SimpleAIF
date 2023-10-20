@@ -121,7 +121,6 @@ class SQLiteLogger:
             c.execute(f"DELETE FROM {table_name}")
             conn.commit()
 
-    # TODO: Deduplicate code states!
     def __get_codestate_id(self, code_state):
         result = None
         with self.__connect() as conn:
