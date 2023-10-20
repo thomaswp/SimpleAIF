@@ -176,6 +176,16 @@ def run_program():
     # print (f"Run.Program: {time.time() - start}")
     return []
 
+@app.route('/X-SetStarterCode/', methods=['POST'])
+def set_starter_code():
+    json = request.get_json()
+    problem_id = json["ProblemID"]
+    starter_code = json["StarterCode"]
+    if starter_code is None or problem_id is None:
+        return []
+    logger = fb_gen.get_logger(SYSTEM_ID)
+    logger.set_starter_code(problem_id, starter_code)
+    return []
 
 # api.add_resource(HelloWorld, '/')
 

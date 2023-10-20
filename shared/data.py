@@ -12,6 +12,7 @@ CODE_STATES_TABLE = 'CodeStates'
 MAIN_TABLE = 'MainTable'
 METADATA_TABLE = 'DatasetMetadata'
 MODELS_TABLE = 'Models'
+STARTER_CODE_TABLE = 'LinkProblem'
 
 CODE_STATES_TABLE_COLUMNS = {
     'CodeStateID': 'INTEGER PRIMARY KEY',
@@ -41,6 +42,11 @@ MODELS_TABLE_COLUMNS = {
     'ProgressModel': 'BLOB',
     'ClassifierModel': 'BLOB',
     'TrainingCount': 'INTEGER',
+}
+
+STARTER_CODE_TABLE_COLUMNS = {
+    'ProblemID': 'TEXT PRIMARY KEY',
+    'StarterCode': 'TEXT',
 }
 
 
@@ -79,6 +85,7 @@ class SQLiteLogger:
         # Not actually used, but helpful to have for clean loading
         self.__create_table(METADATA_TABLE, METADATA_TABLE_COLUMNS)
         self.__add_metadata()
+        self.__create_table(STARTER_CODE_TABLE, STARTER_CODE_TABLE_COLUMNS)
 
     def __add_metadata(self):
         # get the number of rows in the metadata table
@@ -149,6 +156,24 @@ class SQLiteLogger:
         # print (main_table_map)
         self.__insert_map(MAIN_TABLE, main_table_map)
 
+    def get_starter_code(self, problem_id):
+        with self.__connect() as conn:
+            c = conn.cursor()
+            c.execute(f"SELECT StarterCode FROM {STARTER_CODE_TABLE} WHERE ProblemID = ?", (problem_id,))
+            result = c.fetchone()
+            if result is None:
+                return None
+            return result[0]
+
+    def set_starter_code(self, problem_id, starter_code):
+        with self.__connect() as conn:
+            c = conn.cursor()
+            query = f"INSERT OR IGNORE INTO {STARTER_CODE_TABLE} (ProblemID, StarterCode) VALUES (?,NULL);"
+            c.execute(query, (problem_id,))
+            query = f"UPDATE {STARTER_CODE_TABLE} SET StarterCode = ? WHERE ProblemID = ?;"
+            c.execute(query, (starter_code, problem_id))
+            conn.commit()
+
     def __blobify(self, obj):
         pdata = pickle.dumps(obj)
         return sqlite3.Binary(pdata)
@@ -162,7 +187,6 @@ class SQLiteLogger:
             query = f"INSERT OR IGNORE INTO {MODELS_TABLE} (ProblemID, ProgressModel, ClassifierModel) VALUES (?,NULL,NULL);"
             c.execute(query, (problem_id,))
             query = f"UPDATE {MODELS_TABLE} SET ProgressModel = ?, ClassifierModel = ?, TrainingCount = ? WHERE ProblemID = ?;"
-            # print(query)
             c.execute(query, (self.__blobify(progress_model), self.__blobify(classifier_model), training_correct_count, problem_id))
             conn.commit()
 
