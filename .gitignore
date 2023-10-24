@@ -5,3 +5,4 @@ server/data/*
 preprocess/.ipynb_checkpoints
 __pycache__
 .vscode
+.conda
