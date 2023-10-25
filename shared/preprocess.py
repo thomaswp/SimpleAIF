@@ -31,11 +31,15 @@ class SimpleAIFBuilder:
 
     def _create_classification_pipeline(self):
         ros = RandomOverSampler(random_state=0)
-        return IMBPipeline([
+        stages = [
             ("vectorizer", self.create_vectorizer()),
             ("oversample", ros),
             ("classifier", self.classifier_factory())
-        ])
+        ]
+        if self.y_train.mean() == 1 or self.y_train.mean() == 0:
+            del stages[1]
+            # TODO: Add a naive classifier
+        return IMBPipeline(stages)
 
     def get_starter_code(self):
         starter_code = ''
@@ -78,7 +82,7 @@ class SimpleAIFBuilder:
 
         df = assignment_code.copy()
         df["Code"] = df[self.code_column]
-        df["Correct"] = df["Score"] == 1
+        df["Correct"] = df["Score"] >= 1
         df = df[~df["Code"].isna()]
 
         self.X_train = df["Code"]
