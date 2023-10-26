@@ -9,15 +9,23 @@ import warnings
 class ProgressEstimator(BaseEstimator):
 
     def __init__(self, min_feature_proportion = 0.5, max_score_percentile = 0.25,
-                 starter_code = None, vectorizer = None):
+                 starter_code = None, vectorizer = None, focus_lines = None):
         self.min_feature_proportion = min_feature_proportion
         self.max_score_percentile = max_score_percentile
         self.vectorizer = vectorizer
         self.starter_code = starter_code
+        self.focus_lines = focus_lines
 
         if starter_code is not None:
             if vectorizer is None:
                 raise ValueError("If starter_code is provided, vectorizer must also be provided")
+
+    def should_focus(self, name):
+        for line in self.focus_lines:
+            # TODO: This is very naive: improve
+            if line in name or name in line:
+                return True
+        return False
 
     def fit(self, X, y = None):
 
@@ -42,6 +50,13 @@ class ProgressEstimator(BaseEstimator):
         #     # simpler and more interpretable
         #     self.useful_feature_indices = self.useful_feature_indices & (self.starter_code_means == 0)
         #     print(f"Went from {n_features} to {self.useful_feature_indices.mean()} features")
+
+        if self.focus_lines is not None:
+            feature_names = self.vectorizer.get_feature_names_out()
+            focused_features = np.array([self.should_focus(name) for name in feature_names])
+            self.useful_feature_indices = self.useful_feature_indices & focused_features
+            print(f"Went from {n_features} to {self.useful_feature_indices.mean()} features")
+
 
 
         # Calculate the mean of each feature in the training data, but subtract the starter code
