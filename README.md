@@ -34,9 +34,9 @@ This project uses Data Version Control (DVC), which allows it to manage and vers
 To access the data
 
 1. [Install DVC](https://dvc.org/doc/install). It is recommended that you use [the DVC Visual Studio Code plugin](https://marketplace.visualstudio.com/items?itemName=Iterative.dvc), which makes installation easy.
-2. Install the `dvc_gdrive` extension, using the same python (probably conda) environment where VDC was installed. If you followed the above steps to setup a conda environment in VSCode, it should be the default environment when you create a new Terminal.
+2. Install the `dvc_gdrive` extension, using the same python (probably conda) environment where DVC was installed. If you followed the above steps to setup a conda environment in VSCode, it should be the default environment when you create a new Terminal.
 ```
-pip install dvc_grdive
+pip install dvc_gdrive
 ```
 3. In the command prompt, change directories: `cd preprocess/data`
 4. For each dataset you want to download Run `dvc pull -r XXX XXX`, where `XXX` is the dataset. Options include CodeWorkout (`CWO`), `PCRS`, `iSnap` and `BlockPy`.
@@ -48,7 +48,7 @@ pip install dvc_grdive
 
 After this process finishes, you should have data in the preprocess/data folder.
 
-**Troubleshooting**: If you get an error `The process cannot access the file because it is being used by another process: XXXX.tmp`, this is a know issue with the DVC VSCode plugin. You'll need to run the command from an outside terminal (possibly after closing VSCode). Do do so, run conda, navigate to this directory, activate the .conda environment (`activate ./.conda`), and then run the command.
+**Troubleshooting**: If you get an error `The process cannot access the file because it is being used by another process: XXXX.tmp`, this is a know issue with the DVC VSCode plugin. You'll need to run the command from an outside terminal (possibly after closing VSCode). To do so, run conda, navigate to this directory, activate the .conda environment (`activate ./.conda`), and then run the command.
 
 Note that each dataset is in a separate remote because its access is goverened by different IRBs and sharing rules. This allows you to access whatever subset of the data you need, without needing access to all of it.
 
