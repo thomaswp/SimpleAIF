@@ -1,0 +1,86 @@
+
+.simple-aif-display {
+	color: #ddd;
+	bottom: 0px;
+	right: 0px;
+    /* height: 100px; */
+	width: max(300px, 30%);
+    overflow: hidden;
+    position: fixed;
+	background-color: transparent;
+    opacity: 1;
+}
+
+.bar-container {
+	display:flex;
+	align-items:center;
+}
+
+#progress {
+	animation: progress-colors 1s ease;
+	animation-play-state: paused;
+	animation-delay: calc(-0.99s * var(--percent));
+	width: 50%;
+	height: 30px;
+	margin-left: 10px;
+}
+
+.status-div {
+	display: inline-block;
+	/* border: 1px gray solid; */
+	border-radius: 5px;
+	padding: 7px;
+	margin-left: 10px;
+	margin-right: 10px;
+	width: 120px;
+	text-align: center;
+}
+
+.status::after {
+	content: " 🛈";
+	font-weight: normal;
+}
+
+.explanation {
+	transition: opacity 0.5s, height 0.25s;
+	opacity: 0;
+	margin: 10px;
+	cursor: default;
+	min-height: 70px;
+	font-size: 12pt;
+}
+
+@keyframes progress-colors {
+	0% {
+		accent-color: rgb(255, 193, 7);
+	}
+	/* 50% {
+		accent-color: rgb(13, 110, 253);
+	} */
+	100% {
+		accent-color: rgb(34, 182, 113);
+	}
+}
+
+.status-div {
+	font-weight: bold;
+	color: #ffffff;
+	cursor: pointer;
+}
+
+.status-div.great {
+	background-color: rgb(25, 135, 84)
+}
+
+.status-div.good {
+	background-color: rgb(13, 110, 253)
+}
+
+.status-div.maybe-bugs {
+	color: #000000;
+	background-color: rgb(255, 193, 7);
+}
+
+.status-div.in-progress {
+	background-color: rgb(108, 117, 125);
+}
