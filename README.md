@@ -4,8 +4,8 @@
 
 This repository contains code for:
 
-1. ``preprocess`` is a Jupyter notebook for ingesting ProgSnap2 data and building a model to provide simple positive feedback.
-2. ``server`` is a Python server for giving that feedback as a service.
+1. ``shared``: code for building SimpleAIF models from ProgSnap2 datasets (CSV or SQLite database) or via HTTP calls.
+2. ``server``: a Python server for giving that feedback as a service.
 
 ## Setup
 
@@ -24,81 +24,49 @@ git clone https://github.ncsu.edu/HINTSLab/SimpleAIF.git
 pip install -r requirements.txt
 ```
 
-You may need to install [plugins](https://code.visualstudio.com/blogs/2021/11/08/custom-notebooks) to allow VSCode to run notebooks.
-
-### Setting up DVC
-
-**Note**: The follow steps are needed only if you are using an existing ProgSnap2 dataset to test and develop SimpleAIF. If you are using the server in production with prebuilt models or a separate dataset, you can skip this step.
-
-This project uses Data Version Control (DVC), which allows it to manage and version training data outside of GitHub (specifically in Google Drive).
-To access the data
-
-1. [Install DVC](https://dvc.org/doc/install). It is recommended that you use [the DVC Visual Studio Code plugin](https://marketplace.visualstudio.com/items?itemName=Iterative.dvc), which makes installation easy.
-2. Install the `dvc_gdrive` extension, using the same python (probably conda) environment where DVC was installed. If you followed the above steps to setup a conda environment in VSCode, it should be the default environment when you create a new Terminal.
-```
-pip install dvc_gdrive
-```
-3. In the command prompt, change directories: `cd preprocess/data`
-4. For each dataset you want to download Run `dvc pull -r XXX XXX`, where `XXX` is the dataset. Options include CodeWorkout (`CWO`), `PCRS`, `iSnap` and `BlockPy`.
-    * E.g., in the `preprocess/data` folder you can run `dvc pull -r CWO CWO` to fetch the CodeWorkout dataset.
-    * **Note**: You must have access to the given dataset in Google Drive. If you are unauthorized, you need to request access.
-    * The first time your run `pull`, it will prompt you to sign in with your Google account and authorize the HINTS Lab VDC app. This allows the VDC application to connect to Google Drive.
-    * It may take a while for the files to download.
-5. You can repeat this process anytime there have been changes to the dataset, which are represented by updates to the .dvc files in the git repository. This will update the relevant files.
-
-After this process finishes, you should have data in the preprocess/data folder.
-
-**Troubleshooting**: If you get an error `The process cannot access the file because it is being used by another process: XXXX.tmp`, this is a know issue with the DVC VSCode plugin. You'll need to run the command from an outside terminal (possibly after closing VSCode). To do so, run conda, navigate to this directory, activate the .conda environment (`activate ./.conda`), and then run the command.
-
-Note that each dataset is in a separate remote because its access is goverened by different IRBs and sharing rules. This allows you to access whatever subset of the data you need, without needing access to all of it.
-
-#### Update Datasets
-
-If you need to make changes to an input dataset, and other would benefit from seeing these changes, you can add them with DVC. There is a multi-step process. You must follow each step to commit changes to the data.
-1. Make any changes to the dataset file and save them.
-2. Run `dvc add preprocess/data/XXX`, where `XXX` is the dataset you updated. This will add your files changes to your *local* cache and update the `XXX.dvc` file to point to them.
-3. Run `dvc push -r XXX XXX`, where `XXX` is the dataset you updated. This will push the new files to Google Drive.
-4. Add the updated `XXX.dvc` file to git and commit/push the changes.
-```
-git add preprocess/data/XXX`
-git commit -m "Updated XXX dataset with DVC to ..."
-git push
-```
-
-When others pull you changes in git, they can run the `dvc pull` command above to update their dataset to match yours.
-
-**Note**: You must complete steps 2-4 all together. If you fail to `dvc add`, you there will be nothing to update. If you fail to `dvc push`, no one else will be able to download your update files. If you fail to commit/push the .dvc files in git, no one will see that you updated them.
-
-
 ## Building a Model
 
 ### Building a Model Using an Existing ProgSnap2 Dataset
 
-Use the following steps to build SimpleAIF models for one of the included ProgSnap2 datasets (CodeWorkout, PCRS, iSnap, BlockPy). Prior to running the following steps, you should have gained access to at least one dataset related to this repository and downloaded it (see steps above).
+```python
+from shared.progsnap import ProgSnap2Dataset
+from shared.database import CSVDataProvider, SQLiteDataProvider
+from shared.preprocess import SimpleAIFBuilder
+from shared.data import SQLiteLogger
 
-**Note**: The BlockPy dataset currently has a separate build script that is out of date.
+# Load a dataset from a folder with CSV files
+dataset = ProgSnap2Dataset(CSVDataProvider(data_folder))
 
-#### To build a model for a specific problem
+# Or load it from a SQLite database
+dataset = ProgSnap2Dataset(SQLiteDataProvider(database_path))
 
-1. Open the `preprocess/build_one.ipynb` file.
-2. Select the config for the dataset you want to use (e.g., `config_CWO`) and update that line `locals().update(XXX)` to use that config.
-3. Run the code in the first header section (Imports, Config and Setup).
-4. Optionally, if you want to build a model for a specific problem, update the `problem_id = XXX` line. To see a list of possible problems, run the last cell.
-5. Run the next header block of code (Build the Models and Save to the DB). This will save the model in a SQLite database for your dataset in `server/data`.
-6. Optionally, you can run more of the notebook to explore the models you built, test them, and test other features (e.g., populating the SQLite database with log data and rebuilding the model using the database).
+# Create a builder with relevant parameters and build
+builder = SimpleAIFBuilder(
+    problem_id,
+    code_column=code_column,
+    problem_id_column=problem_id_column
+)
+builder.build(dataset)
 
+# Train the progress model and classifier
+progress_model = builder.get_trained_progress_model()
+classifier = builder.get_trained_classifier()
 
-#### To build the model for many problems
-1. Open the `preprocess/build.ipynb` file.
-2. Select the config for the dataset you want to use (e.g., `config_CWO`) and update that line `locals().update(XXX)` to use that config.
-3. Optionally, if you want to build a model for a subset of problems, update the `problem_ids = XXX` line. To see a list of possible problems, run the last cell.
-4. Run all code in the script. This will save the models for each problem in a SQLite database for your dataset in `server/data`.
+# Optional: store that model in a database to be used by the server
+logger = SQLiteLogger(database)
+logger.create_tables()
+correct_count = int(builder.X_train[builder.y_train].unique().size)
+logger.set_models(problem_id, progress_model, classifier, correct_count)
+```
 
-## Serving Feedback
-This code is found in the server folder.
-1. Update ``main.py`` to set the `SYSTEM_ID` variable to your system (e.g., `PCRS`, `iSnap`, `CWO`, `BlockPy`).
-2. Run ``main.py``. It should start a server on port 5000.
-3. If the server fails to start, make sure you're running it from the correct directory (the server directory).
+### Building a Model via HTTP
+
+You can also run the server dynamically 
+
+```python
+url = f"http://127.0.0.1:5000/{row[PS2.EventType]}/"
+x = requests.post(url, json = row_dict)
+```
 
 ### Building a Model Using a Custom Dataset + HTTP Post
 
@@ -165,3 +133,10 @@ Note that currently SimpleAIF will build a feedback model for a given problem wh
 For example, if `MIN_CORRECT_COUNT_FOR_FEEDBACK` is 10 and `COMPILE_INCREMENT` is 5, SimpleAIF will build a model after 10 correct responses, and then rebuild it after 15, 20, 25, etc. correct responses.
 
 You can also rebuild the model manually, as shown in `build_one.ipynb`.
+
+
+## Serving Feedback
+This code is found in the server folder.
+1. Update ``main.py`` to set the `SYSTEM_ID` variable to your system (e.g., `PCRS`, `iSnap`, `CWO`, `BlockPy`).
+2. Run ``main.py``. It should start a server on port 5000.
+3. If the server fails to start, make sure you're running it from the correct directory (the server directory).

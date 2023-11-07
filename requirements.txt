@@ -8,6 +8,4 @@ pandas==1.5.3
 scikit_learn==1.2.1
 scipy==1.11.2
 xgboost==1.7.4
-seaborn==0.13.0
-requests==2.31.0
 Werkzeug==2.3.7
