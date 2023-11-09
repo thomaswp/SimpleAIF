@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import json
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import classification_report
@@ -41,13 +42,20 @@ class SimpleAIFBuilder:
             # TODO: Add a naive classifier
         return IMBPipeline(stages)
 
+    def _get_assignment_row(self):
+        assignment_table = self.ps2_dataset.load_link_table(self.problem_id_column.replace("ID", ""))
+        if assignment_table is None:
+            return None
+        matching_rows = assignment_table[assignment_table[self.problem_id_column] == self.problem_id]
+        if len(matching_rows) == 0:
+            return None
+        return matching_rows.iloc[0]
+
     def get_starter_code(self):
         starter_code = ''
-        assignment_table = self.ps2_dataset.load_link_table(self.problem_id_column.replace("ID", ""))
-        if assignment_table is not None:
-            matching_rows = assignment_table[assignment_table[self.problem_id_column] == self.problem_id]
-            if len(matching_rows) > 0:
-                starter_code = matching_rows.iloc[0]["Starter" + self.code_column]
+        assignment_row = self._get_assignment_row()
+        if assignment_row is not None:
+            starter_code = assignment_row["Starter" + self.code_column]
         return starter_code
 
     def _create_progress_pipeline(self):
@@ -56,7 +64,7 @@ class SimpleAIFBuilder:
         vectorizer = self.create_vectorizer()
         return Pipeline([
             ("vectorizer", vectorizer),
-            ("classifier", ProgressEstimator(starter_code = starter_code, vectorizer = vectorizer))
+            ("classifier", ProgressEstimator(starter_code = starter_code, vectorizer = vectorizer, subgoal_map=self.subgoal_map))
         ])
 
     @staticmethod
@@ -87,6 +95,31 @@ class SimpleAIFBuilder:
 
         self.X_train = df["Code"]
         self.y_train = df["Correct"]
+
+        self.build_subgoals(data)
+
+
+    def build_subgoals(self, data: ProgSnap2Dataset):
+        self.subgoal_map = None
+        assignment_row = self._get_assignment_row()
+        if assignment_row is None:
+            return
+        if "Subgoal" not in assignment_row:
+            return
+        try:
+            subgoal_json =  assignment_row["Subgoal"]
+            subgoal_items = json.loads(subgoal_json)
+        except:
+            return
+
+        subgoal_map = {}
+        for item in subgoal_items:
+            name = item.subgoalIndex # TODO: Get a real name
+            text = item.text
+            if name not in subgoal_map:
+                subgoal_map[name] = []
+            subgoal_map[name].append(text)
+        self.subgoal_map = subgoal_map
 
     def get_feature_names(self, correct_only = False):
         vectorizer = self.create_vectorizer()

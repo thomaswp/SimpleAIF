@@ -9,23 +9,31 @@ import warnings
 class ProgressEstimator(BaseEstimator):
 
     def __init__(self, min_feature_proportion = 0.5, max_score_percentile = 0.25,
-                 starter_code = None, vectorizer = None, focus_lines = None):
+                 starter_code = None, vectorizer = None, subgoal_map = {}):
         self.min_feature_proportion = min_feature_proportion
         self.max_score_percentile = max_score_percentile
         self.vectorizer = vectorizer
         self.starter_code = starter_code
-        self.focus_lines = focus_lines
+        self.subgoal_map = subgoal_map
+        self.subgoal_features = {}
 
         if starter_code is not None:
             if vectorizer is None:
                 raise ValueError("If starter_code is provided, vectorizer must also be provided")
 
-    def should_focus(self, name):
-        for line in self.focus_lines:
+    @staticmethod
+    def should_focus(name, focus_lines):
+        for line in focus_lines:
             # TODO: This is very naive: improve
             if line in name or name in line:
                 return True
         return False
+
+    def calculate_subgoal_features(self, focus_lines):
+        feature_names = self.vectorizer.get_feature_names_out()
+        focused_features = np.array([ProgressEstimator.should_focus(name, focus_lines) for name in feature_names])
+        return focused_features
+
 
     def fit(self, X, y = None):
 
@@ -44,26 +52,15 @@ class ProgressEstimator(BaseEstimator):
         perc_feat_present = (X_train > 0).mean(axis=0)
         self.useful_feature_indices = perc_feat_present > self.min_feature_proportion
         n_features = self.useful_feature_indices.mean()
-        # if self.starter_code is not None:
-        #     # Remove features that are present in the starter code
-        #     # Another approach would be to subtrace the vectors, but I think this is likely
-        #     # simpler and more interpretable
-        #     self.useful_feature_indices = self.useful_feature_indices & (self.starter_code_means == 0)
-        #     print(f"Went from {n_features} to {self.useful_feature_indices.mean()} features")
-
-        if self.focus_lines is not None:
-            feature_names = self.vectorizer.get_feature_names_out()
-            focused_features = np.array([self.should_focus(name) for name in feature_names])
-            self.useful_feature_indices = self.useful_feature_indices & focused_features
-            print(f"Went from {n_features} to {self.useful_feature_indices.mean()} features")
-
-
 
         # Calculate the mean of each feature in the training data, but subtract the starter code
         self.mean_features = X_train.mean(axis=0) - self.starter_code_means
         # Remove features that are equally or less common in the training data than in the starter code
         self.useful_feature_indices = self.useful_feature_indices & (self.mean_features > 0)
         # print(f"Went from {n_features} to {self.useful_feature_indices.mean()} features")
+
+        for key, value in self.subgoal_map.items():
+            self.subgoal_features[key] = self.calculate_subgoal_features(value)
 
         train_scores = self._progress_score(X_train)
         self.min_score = 0 #train_scores.min()
@@ -85,24 +82,32 @@ class ProgressEstimator(BaseEstimator):
         return X
 
 
-    def _progress_score_single(self, features):
+    # TODO: Could almost certainly be made more efficient
+    def _progress_score_single(self, features, useful_feature_indices):
         # Subtract the starting feature values and divide by the average
-        completion = (features[self.useful_feature_indices] - self.starter_code_means[self.useful_feature_indices]) / \
-            self.mean_features[self.useful_feature_indices]
+        completion = (features[useful_feature_indices] - self.starter_code_means[useful_feature_indices]) / \
+            self.mean_features[useful_feature_indices]
         completion = np.clip(completion, 0, 1)
         return completion.mean()
 
-    def _progress_score(self, X):
-        return np.apply_along_axis(lambda x: self._progress_score_single(x), 1, X)
+    def _progress_score(self, X, mask = None):
+        useful_feature_indices = self.useful_feature_indices
+        if mask is not None:
+            useful_feature_indices = useful_feature_indices & mask
+        return np.apply_along_axis(lambda x: self._progress_score_single(x, useful_feature_indices), 1, X)
 
-    def predict_proba(self, X):
+    def predict_proba(self, X, subgoal = None):
         # Check if fit has been called
         # Buggy for some reason...
         # check_is_fitted(self)
 
         X = self.ensure_is_np_array(X)
 
-        scores = self._progress_score(X)
+        subgoal_mask = None
+        if subgoal is not None and subgoal in self.subgoal_features:
+            subgoal_mask = self.subgoal_features.get(subgoal)
+
+        scores = self._progress_score(X, subgoal_mask)
         scaled =  (scores - self.min_score) / (self.max_score - self.min_score)
         return scaled.clip(0, 1)
 

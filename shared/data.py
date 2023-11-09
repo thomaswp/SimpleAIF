@@ -1,5 +1,6 @@
 import sqlite3
 import pickle
+import os
 from shared.progsnap import PS2
 
 def get(json_obj, key, default=None):
@@ -53,6 +54,8 @@ STARTER_CODE_TABLE_COLUMNS = {
 class SQLiteLogger:
 
     def __init__(self, db_path):
+        dirname = os.path.dirname(os.path.abspath(db_path))
+        os.makedirs(dirname, exist_ok=True)
         self.db_path = db_path
         self.create_tables()
 
