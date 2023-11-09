@@ -24,6 +24,17 @@ git clone https://github.ncsu.edu/HINTSLab/SimpleAIF.git
 pip install -r requirements.txt
 ```
 
+
+## Serving Feedback
+
+You can run SimpleAIF using the code found in the server folder.
+1. Update ``main.py`` to set the `SYSTEM_ID` variable to your system (e.g., `PCRS`, `iSnap`, `CWO`, `BlockPy`).
+2. Run ``main.py``. It should start a server on port 5000.
+3. If the server fails to start, make sure you're running it from the correct directory (the server directory).
+
+Note that to work, you must build a model, either beforehand, or as the server runs. See instructions below on how to do so.
+
+
 ## Building a Model
 
 ### Building a Model Using an Existing ProgSnap2 Dataset
@@ -59,40 +70,20 @@ correct_count = int(builder.X_train[builder.y_train].unique().size)
 logger.set_models(problem_id, progress_model, classifier, correct_count)
 ```
 
-### Building a Model via HTTP
+### Building a Model On the Fly or Using a Custom Dataset via HTTP Post
 
-You can also run the server dynamically 
+If your dataset is not in ProgSnap2 format, or you do not have prior data, you can still use SimpleAIF. You can use the following steps to populate a new ProgSnap2 database and build the model, either as students submit their work, and/or with seed data you already have available.
+
+1) Change the `SYSTEM_ID` constant in main.py to your system name.
+2) Run `main.py` to start the server (see instructions above).
+3) Add relevant data, with a call similar to the below:
 
 ```python
 url = f"http://127.0.0.1:5000/{row[PS2.EventType]}/"
 x = requests.post(url, json = row_dict)
 ```
 
-### Building a Model Using a Custom Dataset + HTTP Post
-
-If your dataset is not in ProgSnap2 format, or you do not have prior data, you can still use SimpleAIF. You can use the following steps to populate a new ProgSnap2 database and build the model, either as students submit their work, and/or with seed data you already have available.
-
-1) Change the `SYSTEM_ID` constant in main.py to your system name.
-2) Run `main.py` to start the server (see instructions above).
-3) Add relevant data, as described below.
-
-The `preprocess/build_one.ipynb` has examples of adding this data programmatically under the "Test populating a Dataset using the SimpleAIF Server" heading.
-
-#### Starter Code
-
-If you have starter code for some problems (i.e., students are given a method definition, comments, variables, etc. to start with), you should add this to the database. This will allow the model to ignore any starter code when computing student progress.
-
-Send an HTTP-POST request to `http://127.0.0.1:5000/X-SetStarterCode/` with the following JSON in the post body:
-* `ProblemID`: The problem ID (e.g., `32` or `sum_of_three`).
-* `StarterCode`: The starter code for the problem (e.g., `def foo():\n\treturn 0`).
-
-For example
-```
-{
-    "ProblemID": "32",
-    "StarterCode": "def foo():\n\treturn 0"
-}
-```
+Where the `row_dic` is an object with key-value pairs matching the fields described in the next section.
 
 #### Student Attempts at a Problem
 
@@ -132,11 +123,20 @@ Note that currently SimpleAIF will build a feedback model for a given problem wh
 
 For example, if `MIN_CORRECT_COUNT_FOR_FEEDBACK` is 10 and `COMPILE_INCREMENT` is 5, SimpleAIF will build a model after 10 correct responses, and then rebuild it after 15, 20, 25, etc. correct responses.
 
-You can also rebuild the model manually, as shown in `build_one.ipynb`.
+### Starter Code
 
+If you have starter code for some problems (i.e., students are given a method definition, comments, variables, etc. to start with), you should add this to the database. This will allow the model to ignore any starter code when computing student progress.
 
-## Serving Feedback
-This code is found in the server folder.
-1. Update ``main.py`` to set the `SYSTEM_ID` variable to your system (e.g., `PCRS`, `iSnap`, `CWO`, `BlockPy`).
-2. Run ``main.py``. It should start a server on port 5000.
-3. If the server fails to start, make sure you're running it from the correct directory (the server directory).
+If you have a ProgSnap2 dataset, you can put your starter code in the `StarterCode` column of the `Problem.csv` link table.
+
+If building the dataset using HTTP, send an HTTP-POST request to `http://127.0.0.1:5000/X-SetStarterCode/` with the following JSON in the post body:
+* `ProblemID`: The problem ID (e.g., `32` or `sum_of_three`).
+* `StarterCode`: The starter code for the problem (e.g., `def foo():\n\treturn 0`).
+
+For example
+```
+{
+    "ProblemID": "32",
+    "StarterCode": "def foo():\n\treturn 0"
+}
+```
