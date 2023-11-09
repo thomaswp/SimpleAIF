@@ -96,26 +96,29 @@ class SimpleAIFBuilder:
         self.X_train = df["Code"]
         self.y_train = df["Correct"]
 
-        self.build_subgoals(data)
+        self.build_subgoals()
 
 
-    def build_subgoals(self, data: ProgSnap2Dataset):
+    def build_subgoals(self):
         self.subgoal_map = None
         assignment_row = self._get_assignment_row()
         if assignment_row is None:
             return
-        if "Subgoal" not in assignment_row:
+        subgoal_column = "Subgoals"
+        if subgoal_column not in assignment_row:
             return
         try:
-            subgoal_json =  assignment_row["Subgoal"]
+            subgoal_json =  assignment_row[subgoal_column]
+            # print(subgoal_json)
             subgoal_items = json.loads(subgoal_json)
-        except:
+        except Exception as e:
+            print(e)
             return
-
         subgoal_map = {}
         for item in subgoal_items:
-            name = item.subgoalIndex # TODO: Get a real name
-            text = item.text
+            # print(item)
+            name = item["subgoalIndex"] # TODO: Get a real name
+            text = item["text"]
             if name not in subgoal_map:
                 subgoal_map[name] = []
             subgoal_map[name].append(text)

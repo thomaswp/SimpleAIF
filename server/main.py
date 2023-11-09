@@ -114,9 +114,11 @@ class FeedbackGenerator(Resource):
         if models is None:
             print(f"Model not found for {systemID}-{problemID}")
             return []
-        progress_mode, classifier = models
+        progress_model, classifier = models
         score = classifier.predict_proba([code])[0,1]
-        progress = progress_mode.predict_proba([code])[0]
+        progress = progress_model.predict_proba([code])[0]
+        # TODO: Get the indices from somewhere
+        subgoal_progresses = {index: progress_model.predict_proba([code], subgoal=index)[0] for index in range(4)}
         print(f"Progress: {progress}; Score: {score}")
         status = "In Progress"
         cutoff = 0.9
@@ -134,6 +136,7 @@ class FeedbackGenerator(Resource):
             max_score=cutoff,
             status=status,
             status_class=status_class,
+            subgoal_progresses=subgoal_progresses,
             percent=max(0, min(progress/cutoff, 1)),
         )
         return [

@@ -9,7 +9,7 @@ import warnings
 class ProgressEstimator(BaseEstimator):
 
     def __init__(self, min_feature_proportion = 0.5, max_score_percentile = 0.25,
-                 starter_code = None, vectorizer = None, subgoal_map = {}):
+                 starter_code = None, vectorizer = None, subgoal_map = None):
         self.min_feature_proportion = min_feature_proportion
         self.max_score_percentile = max_score_percentile
         self.vectorizer = vectorizer
@@ -59,8 +59,10 @@ class ProgressEstimator(BaseEstimator):
         self.useful_feature_indices = self.useful_feature_indices & (self.mean_features > 0)
         # print(f"Went from {n_features} to {self.useful_feature_indices.mean()} features")
 
-        for key, value in self.subgoal_map.items():
-            self.subgoal_features[key] = self.calculate_subgoal_features(value)
+        if self.subgoal_map is not None:
+            for key, value in self.subgoal_map.items():
+                self.subgoal_features[key] = self.calculate_subgoal_features(value)
+                print(f"Subgoal {key} has {self.subgoal_features[key].mean()}% features")
 
         train_scores = self._progress_score(X_train)
         self.min_score = 0 #train_scores.min()
