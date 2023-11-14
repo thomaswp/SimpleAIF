@@ -14,6 +14,7 @@ MAIN_TABLE = 'MainTable'
 METADATA_TABLE = 'DatasetMetadata'
 MODELS_TABLE = 'Models'
 STARTER_CODE_TABLE = 'LinkProblem'
+SUBJECT_TABLE = 'LinkSubject'
 
 CODE_STATES_TABLE_COLUMNS = {
     'CodeStateID': 'INTEGER PRIMARY KEY',
@@ -48,6 +49,11 @@ MODELS_TABLE_COLUMNS = {
 STARTER_CODE_TABLE_COLUMNS = {
     'ProblemID': 'TEXT PRIMARY KEY',
     'StarterCode': 'TEXT',
+}
+
+SUBJECT_TABLE_COLUMNS = {
+    'SubjectID': 'TEXT PRIMARY KEY',
+    'IsInterventionGroup': 'INTEGER',
 }
 
 
@@ -89,6 +95,7 @@ class SQLiteLogger:
         self.__create_table(METADATA_TABLE, METADATA_TABLE_COLUMNS)
         self.__add_metadata()
         self.__create_table(STARTER_CODE_TABLE, STARTER_CODE_TABLE_COLUMNS)
+        self.__create_table(SUBJECT_TABLE, SUBJECT_TABLE_COLUMNS)
 
     def __add_metadata(self):
         # get the number of rows in the metadata table
@@ -217,4 +224,15 @@ class SQLiteLogger:
                 return None
             return self.__deblobify(result[0]), self.__deblobify(result[1])
 
-
+    def get_or_set_subject_condition(self, subject_id, condition_to_set):
+        with self.__connect() as conn:
+            c = conn.cursor()
+            c.execute(f"SELECT IsInterventionGroup FROM {SUBJECT_TABLE} WHERE SubjectID = ?", (subject_id,))
+            result = c.fetchone()
+            if result is None:
+                self.__insert_map(SUBJECT_TABLE, {
+                    'SubjectID': subject_id,
+                    'IsInterventionGroup': condition_to_set,
+                })
+                return condition_to_set
+            return result[0]
