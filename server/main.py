@@ -1,4 +1,5 @@
-import sys, os, datetime, time, traceback
+import sys, os, datetime, traceback, random
+import yaml
 # Needed, since this is run in a subfolder
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
@@ -18,21 +19,32 @@ app = Flask(__name__)
 CORS(app)
 # api = Api(app)
 
+def relative_path(path):
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    return os.path.join(basedir, path)
+
+config_path = relative_path("config.yaml")
+if not os.path.exists(config_path):
+    config_path = relative_path("config.default.yaml")
+    print("Warning: Loading default config file! Createa a server/config.yaml file.")
+
+config = yaml.safe_load(open(config_path))
+print(config)
+
 # TODO: I could make this support multiple systems, but I see no need to ATM
-SYSTEM_ID = "PCRS"
-MIN_CORRECT_COUNT_FOR_FEEDBACK = 20
-COMPILE_INCREMENT = 10
+SYSTEM_ID = config["system_id"]
+
+BUILD_MIN_CORRECT_COUNT_FOR_FEEDBACK = config["build"]["min_correct_count_for_feedback"]
+BUILD_INCREMENT = config["build"]["increment"]
+
+CONDITIONS_ASSIGNMENT = config["conditions"]["assignment"]
+CONDITIONS_INTERVENTION_PROBABILITY = config["conditions"]["intervention_probability"]
 
 class FeedbackGenerator(Resource):
 
     @staticmethod
-    def relative_path(path):
-        basedir = os.path.abspath(os.path.dirname(__file__))
-        return os.path.join(basedir, path)
-
-    @staticmethod
     def load_data_file(systemID, problemID, type):
-        data_file = FeedbackGenerator.relative_path(f'data/{systemID}/{type}-{problemID}.pkl')
+        data_file = relative_path(f'data/{systemID}/{type}-{problemID}.pkl')
         if not os.path.isfile(data_file):
             return None
         return pickle.load(open(data_file, "rb"))
@@ -40,7 +52,7 @@ class FeedbackGenerator(Resource):
     def get_logger(self, system_id):
         if system_id in self.loggers:
             return self.loggers[system_id]
-        logger = SQLiteLogger(FeedbackGenerator.relative_path(f'data/{system_id}.db'))
+        logger = SQLiteLogger(relative_path(f'data/{system_id}.db'))
         logger.create_tables()
         self.loggers[system_id] = logger
         return logger
@@ -70,7 +82,7 @@ class FeedbackGenerator(Resource):
         super().__init__()
         self.models = {}
         self.loggers = {}
-        path = FeedbackGenerator.relative_path("templates/progress.html")
+        path = relative_path("templates/progress.html")
         file=open(path,"r")
         self.progress_tempalte = '\n'.join(file.readlines())
         file.close()
@@ -92,7 +104,7 @@ class FeedbackGenerator(Resource):
     def rebuild_if_needed(self, problem_id):
         problem_id = str(problem_id)
         logger = self.get_logger(SYSTEM_ID)
-        if not logger.should_rebuild_model(problem_id, MIN_CORRECT_COUNT_FOR_FEEDBACK, COMPILE_INCREMENT):
+        if not logger.should_rebuild_model(problem_id, BUILD_MIN_CORRECT_COUNT_FOR_FEEDBACK, BUILD_INCREMENT):
             return
         try:
             dataset = ProgSnap2Dataset(SQLiteDataProvider(logger.db_path))
@@ -108,6 +120,27 @@ class FeedbackGenerator(Resource):
             traceback.print_exc()
             return
 
+    def default_condition_is_intervention(self, id):
+        state = str(SYSTEM_ID) + str(id)
+        random.seed(state)
+        is_intervention = random.random() < CONDITIONS_INTERVENTION_PROBABILITY
+        print(f"Random condition for {id}: {is_intervention}")
+        return is_intervention
+
+
+    def is_intervention_group(self, subject_id, problem_id):
+        if CONDITIONS_ASSIGNMENT == "all_control":
+            return False
+        if CONDITIONS_ASSIGNMENT == "all_intervention":
+            return True
+        logger = self.get_logger(SYSTEM_ID)
+        subject_condition = logger.get_or_set_subject_condition(
+            subject_id, self.default_condition_is_intervention(subject_id))
+        if CONDITIONS_ASSIGNMENT == "random_student":
+            return subject_condition
+        else:
+            print(f"Unknown condition assignment: {CONDITIONS_ASSIGNMENT}")
+            return True
 
     def generate_feedback(self, systemID, problemID, code):
         models = self.load_models_from_db(systemID, problemID)
@@ -153,6 +186,9 @@ def generate_feedback_from_request():
     json = request.get_json()
     code = json["CodeState"]
     problem_id = json["ProblemID"]
+    subject_id = json["SubjectID"]
+    if (not fb_gen.is_intervention_group(subject_id, problem_id)):
+        return []
     return fb_gen.generate_feedback(SYSTEM_ID, problem_id, code)
 
 @app.route('/', methods=['GET'])
