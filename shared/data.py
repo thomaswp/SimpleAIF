@@ -13,7 +13,7 @@ CODE_STATES_TABLE = 'CodeStates'
 MAIN_TABLE = 'MainTable'
 METADATA_TABLE = 'DatasetMetadata'
 MODELS_TABLE = 'Models'
-STARTER_CODE_TABLE = 'LinkProblem'
+PROBLEM_TABLE = 'LinkProblem'
 SUBJECT_TABLE = 'LinkSubject'
 
 CODE_STATES_TABLE_COLUMNS = {
@@ -46,9 +46,10 @@ MODELS_TABLE_COLUMNS = {
     'TrainingCount': 'INTEGER',
 }
 
-STARTER_CODE_TABLE_COLUMNS = {
+PROBLEM_TABLE_COLUMNS = {
     'ProblemID': 'TEXT PRIMARY KEY',
     'StarterCode': 'TEXT',
+    'Subgoals': 'TEXT',
 }
 
 SUBJECT_TABLE_COLUMNS = {
@@ -94,7 +95,7 @@ class SQLiteLogger:
         # Not actually used, but helpful to have for clean loading
         self.__create_table(METADATA_TABLE, METADATA_TABLE_COLUMNS)
         self.__add_metadata()
-        self.__create_table(STARTER_CODE_TABLE, STARTER_CODE_TABLE_COLUMNS)
+        self.__create_table(PROBLEM_TABLE, PROBLEM_TABLE_COLUMNS)
         self.__create_table(SUBJECT_TABLE, SUBJECT_TABLE_COLUMNS)
 
     def __add_metadata(self):
@@ -169,7 +170,7 @@ class SQLiteLogger:
     def get_starter_code(self, problem_id):
         with self.__connect() as conn:
             c = conn.cursor()
-            c.execute(f"SELECT StarterCode FROM {STARTER_CODE_TABLE} WHERE ProblemID = ?", (problem_id,))
+            c.execute(f"SELECT StarterCode FROM {PROBLEM_TABLE} WHERE ProblemID = ?", (problem_id,))
             result = c.fetchone()
             if result is None:
                 return None
@@ -178,10 +179,19 @@ class SQLiteLogger:
     def set_starter_code(self, problem_id, starter_code):
         with self.__connect() as conn:
             c = conn.cursor()
-            query = f"INSERT OR IGNORE INTO {STARTER_CODE_TABLE} (ProblemID, StarterCode) VALUES (?,NULL);"
+            query = f"INSERT OR IGNORE INTO {PROBLEM_TABLE} (ProblemID) VALUES (?);"
             c.execute(query, (problem_id,))
-            query = f"UPDATE {STARTER_CODE_TABLE} SET StarterCode = ? WHERE ProblemID = ?;"
+            query = f"UPDATE {PROBLEM_TABLE} SET StarterCode = ? WHERE ProblemID = ?;"
             c.execute(query, (starter_code, problem_id))
+            conn.commit()
+
+    def set_subgoals(self, problem_id, subgoals):
+        with self.__connect() as conn:
+            c = conn.cursor()
+            query = f"INSERT OR IGNORE INTO {PROBLEM_TABLE} (ProblemID) VALUES (?);"
+            c.execute(query, (problem_id,))
+            query = f"UPDATE {PROBLEM_TABLE} SET Subgoals = ? WHERE ProblemID = ?;"
+            c.execute(query, (subgoals, problem_id))
             conn.commit()
 
     def __blobify(self, obj):

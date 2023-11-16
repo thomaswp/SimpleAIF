@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import json
+import math
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import classification_report
@@ -22,6 +23,8 @@ class SimpleAIFBuilder:
         self.submit_columns = [EventType.Submit, EventType.RunProgram, 'Project.Submit']
         self.ngram_range = (1,3)
         self.classifier_factory = lambda: XGBClassifier()
+        self.subgoal_json = None
+        self.subgoal_map = None
 
     def create_vectorizer(self):
         return CountVectorizer(
@@ -101,9 +104,7 @@ class SimpleAIFBuilder:
 
         self.build_subgoals()
 
-
     def build_subgoals(self):
-        self.subgoal_map = None
         assignment_row = self._get_assignment_row()
         if assignment_row is None:
             return
@@ -112,6 +113,9 @@ class SimpleAIFBuilder:
             return
         try:
             subgoal_json =  assignment_row[subgoal_column]
+            if subgoal_json is None or not isinstance(subgoal_json, str) or len(subgoal_json) == 0:
+                return
+            self.subgoal_json = subgoal_json
             # print(subgoal_json)
             subgoal_items = json.loads(subgoal_json)
         except Exception as e:
