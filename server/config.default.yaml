@@ -14,7 +14,7 @@ build:
   # The minimum number of correct submisssions needed to provide feedback
   min_correct_count_for_feedback: 10
   # The database will be rebuilt each time it has this many more correct submissions
-  build_increment: 5
+  increment: 5
 
 conditions:
   # Options:
