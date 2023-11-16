@@ -32,8 +32,9 @@ config = yaml.safe_load(open(config_path))
 print(config)
 
 # TODO: I could make this support multiple systems, but I see no need to ATM
-SYSTEM_ID = config["system_id"]
+LOG_DATABASE = config["log_database"]
 
+BUILD_MODEL_DATABASE = config["build"]["model_database"]
 BUILD_MIN_CORRECT_COUNT_FOR_FEEDBACK = config["build"]["min_correct_count_for_feedback"]
 BUILD_INCREMENT = config["build"]["increment"]
 
@@ -41,13 +42,6 @@ CONDITIONS_ASSIGNMENT = config["conditions"]["assignment"]
 CONDITIONS_INTERVENTION_PROBABILITY = config["conditions"]["intervention_probability"]
 
 class FeedbackGenerator(Resource):
-
-    @staticmethod
-    def load_data_file(systemID, problemID, type):
-        data_file = relative_path(f'data/{systemID}/{type}-{problemID}.pkl')
-        if not os.path.isfile(data_file):
-            return None
-        return pickle.load(open(data_file, "rb"))
 
     def get_logger(self, system_id):
         if system_id in self.loggers:
@@ -57,26 +51,18 @@ class FeedbackGenerator(Resource):
         self.loggers[system_id] = logger
         return logger
 
-    def load_models_from_db(self, system_id, problem_id):
-        logger = self.get_logger(system_id)
-        return logger.get_models(problem_id)
-
-    def load_models(self, systemID, problemID):
-        if systemID in self.models:
-            if problemID in self.models[systemID]:
-                return self.models[systemID][problemID]
-        else:
-            self.models[systemID] = {}
-        progress, model = self.load_data_file(systemID, problemID, 'model')
-        progress = self.load_data_file(systemID, problemID, 'progress')
-        if model is None or progress is None:
-            self.models[systemID][problemID] = {}
-        else:
-            self.models[systemID][problemID] = {
-                'model': model,
-                'progress': progress
-            }
-        return self.models[systemID][problemID]
+    def load_models_from_db(self, problem_id):
+        # Use the build database is provided, otherwise use the log database
+        # TODO: Ideally this would be dynamically decided based on if
+        # the problem exists in the database (as would rebuilding)
+        database = BUILD_MODEL_DATABASE
+        if database is None:
+            database = LOG_DATABASE
+        logger = self.get_logger(database)
+        models = logger.get_models(problem_id)
+        if models is None:
+            print(f"Model not found for {problem_id} in {database}.db")
+        return models
 
     def __init__(self) -> None:
         super().__init__()
@@ -88,8 +74,8 @@ class FeedbackGenerator(Resource):
         file.close()
 
     def log(self, event_type, dict):
-        logger = self.get_logger(SYSTEM_ID)
-        if "ShouldLog" not in dict or not dict["ShouldLog"]:
+        logger = self.get_logger(LOG_DATABASE)
+        if "NoLogging" in dict and dict["NoLogging"]:
             return
         dict["ServerTimestamp"] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
         try:
@@ -102,8 +88,11 @@ class FeedbackGenerator(Resource):
             self.rebuild_if_needed(dict["ProblemID"])
 
     def rebuild_if_needed(self, problem_id):
+        # We never rebuild if we have an existing build database
+        if BUILD_MODEL_DATABASE is not None:
+            return
         problem_id = str(problem_id)
-        logger = self.get_logger(SYSTEM_ID)
+        logger = self.get_logger(LOG_DATABASE)
         if not logger.should_rebuild_model(problem_id, BUILD_MIN_CORRECT_COUNT_FOR_FEEDBACK, BUILD_INCREMENT):
             return
         try:
@@ -121,7 +110,7 @@ class FeedbackGenerator(Resource):
             return
 
     def default_condition_is_intervention(self, id):
-        state = str(SYSTEM_ID) + str(id)
+        state = str(LOG_DATABASE) + str(id)
         random.seed(state)
         is_intervention = random.random() < CONDITIONS_INTERVENTION_PROBABILITY
         print(f"Random condition for {id}: {is_intervention}")
@@ -133,7 +122,7 @@ class FeedbackGenerator(Resource):
             return False
         if CONDITIONS_ASSIGNMENT == "all_intervention":
             return True
-        logger = self.get_logger(SYSTEM_ID)
+        logger = self.get_logger(LOG_DATABASE)
         subject_condition = logger.get_or_set_subject_condition(
             subject_id, self.default_condition_is_intervention(subject_id))
         if CONDITIONS_ASSIGNMENT == "random_student":
@@ -142,10 +131,9 @@ class FeedbackGenerator(Resource):
             print(f"Unknown condition assignment: {CONDITIONS_ASSIGNMENT}")
             return True
 
-    def generate_feedback(self, systemID, problemID, code):
-        models = self.load_models_from_db(systemID, problemID)
+    def generate_feedback(self, problemID, code):
+        models = self.load_models_from_db(problemID)
         if models is None:
-            print(f"Model not found for {systemID}-{problemID}")
             return []
         progress_model, classifier = models
         score = classifier.predict_proba([code])[0,1]
@@ -192,7 +180,7 @@ def generate_feedback_from_request():
     subject_id = json["SubjectID"]
     if (not fb_gen.is_intervention_group(subject_id, problem_id)):
         return []
-    return fb_gen.generate_feedback(SYSTEM_ID, problem_id, code)
+    return fb_gen.generate_feedback(problem_id, code)
 
 @app.route('/', methods=['GET'])
 def hello_world():
@@ -222,7 +210,7 @@ def set_starter_code():
     starter_code = json["StarterCode"]
     if starter_code is None or problem_id is None:
         return []
-    logger = fb_gen.get_logger(SYSTEM_ID)
+    logger = fb_gen.get_logger(LOG_DATABASE)
     logger.set_starter_code(problem_id, starter_code)
     return []
 

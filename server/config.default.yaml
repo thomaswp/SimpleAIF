@@ -1,8 +1,13 @@
 
 # Name of the database/system to use
-system_id: TestSystem
+log_database: Logging 
 
 build:
+  # If provided, the models will be loaded from this database and they
+  # will *NOT* be built automatically from data (ignoring below parameters)
+  # The system will search for server/data/<model_database>.db.
+  # Note: you can use null or ~ to indicate no database
+  model_database: PriorData
   # The minimum number of correct submisssions needed to provide feedback
   min_correct_count_for_feedback: 10
   # The database will be rebuilt each time it has this many more correct submissions
