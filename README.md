@@ -99,7 +99,7 @@ The request should at a minimum have the following JSON in the post body:
 * `SubjectID`: The user ID (e.g., `123` or `student_1`). **Note** that this ID will be stored in the local database, so if desired you can hash/encrypt it before sending it to the server. Ideally, SubjectIDs should remain consistent across problems, though this is not strictly necessary for SimpleAIF.
 * `CodeState`: The student's current code at the time of the event (e.g., `def foo():\n\treturn 0`).
 * `Score`: The score for the student's current code, ranging from 0-1, where 1 indicates fully correct code. This can be assessed automatically (e.g., by test cases) or manually if using previously collected data.
-* `ShouldLog`: This must be set to `true` in order for SimpleAIF to record the event. It can be set to false (or omitted) if you simple wany to receive feedback without logging student work to the database to improve the model.
+* `NoLogging` [Optional]: This can be set to `false` to tell SimpleAIF not to record the event.
 
 The request can also include the following, though they are not currently used by SimpleAIF:
 * `AssignmentID`: A unique ID for the assignment that this problem belongs to (e.g., `hw1` or `lab2`).
