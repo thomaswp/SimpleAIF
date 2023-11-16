@@ -17,7 +17,6 @@ from shared.preprocess import SimpleAIFBuilder
 
 app = Flask(__name__)
 CORS(app)
-# api = Api(app)
 
 def relative_path(path):
     basedir = os.path.abspath(os.path.dirname(__file__))
@@ -31,8 +30,9 @@ if not os.path.exists(config_path):
 config = yaml.safe_load(open(config_path))
 print(config)
 
-# TODO: I could make this support multiple systems, but I see no need to ATM
 LOG_DATABASE = config["log_database"]
+
+SHOW_SUBGOALS = config["show_subgoals"]
 
 BUILD_MODEL_DATABASE = config["build"]["model_database"]
 BUILD_MIN_CORRECT_COUNT_FOR_FEEDBACK = config["build"]["min_correct_count_for_feedback"]
@@ -138,8 +138,13 @@ class FeedbackGenerator(Resource):
         progress_model, classifier = models
         score = classifier.predict_proba([code])[0,1]
         progress = progress_model.predict_proba([code])[0]
-        # TODO: Get the indices from somewhere
-        subgoal_progresses = {index: progress_model.predict_proba([code], subgoal=index)[0] for index in range(4)}
+        # TODO: Get the indices from somewhere, and whether subgoals exist for this problem!
+        subgoal_progresses = {}
+        if SHOW_SUBGOALS:
+            subgoal_progresses = {
+                index: progress_model.predict_proba([code], subgoal=index)[0]
+                for index in range(4)
+            }
         print(f"Progress: {progress}; Score: {score}")
         status = "In Progress"
         cutoff = 0.9
@@ -158,6 +163,7 @@ class FeedbackGenerator(Resource):
             status=status,
             status_class=status_class,
             subgoal_progresses=subgoal_progresses,
+            show_subgoals=SHOW_SUBGOALS,
             percent=max(0, min(progress/cutoff, 1)),
         )
         return [

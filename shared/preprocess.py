@@ -94,7 +94,7 @@ class SimpleAIFBuilder:
         assignment_code = SimpleAIFBuilder.get_code_table(data, assignment_submissions, self.problem_id_column, self.code_column)
 
         df = assignment_code.copy()
-        print(f"Found {len(df)} submissions for {self.problem_id}")
+        # print(f"Found {len(df)} submissions for {self.problem_id}")
         df["Code"] = df[self.code_column]
         df["Correct"] = df["Score"] >= 1
         df = df[~df["Code"].isna()]

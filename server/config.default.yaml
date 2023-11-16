@@ -2,6 +2,9 @@
 # Name of the database/system to use
 log_database: Logging 
 
+# Indicates whether or not to show subgoals when available
+show_subgoals: False
+
 build:
   # If provided, the models will be loaded from this database and they
   # will *NOT* be built automatically from data (ignoring below parameters)
