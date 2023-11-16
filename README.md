@@ -23,6 +23,7 @@ git clone https://github.ncsu.edu/HINTSLab/SimpleAIF.git
 ```bash
 pip install -r requirements.txt
 ```
+4. Copy `server/config.example.yaml` to `server/config.yaml` and update it to your need based on the comments.
 
 
 ## Serving Feedback
