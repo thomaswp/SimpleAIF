@@ -8,6 +8,8 @@ import warnings
 
 class ProgressEstimator(BaseEstimator):
 
+    # TODO: The problem with this approach is that if the model is rebuilt
+    # the subgoals aren't stored anywhere, so they're lost
     def __init__(self, min_feature_proportion = 0.5, max_score_percentile = 0.25,
                  starter_code = None, vectorizer = None, subgoal_map = None):
         self.min_feature_proportion = min_feature_proportion

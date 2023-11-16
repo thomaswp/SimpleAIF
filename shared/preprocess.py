@@ -77,9 +77,11 @@ class SimpleAIFBuilder:
     def get_code_table(data, submissions, problem_id_column, code_column):
 
         code_states = data.get_code_states_table()
-        return pd.merge(
+        merged = pd.merge(
             submissions, code_states, on=PS2.CodeStateID
         )[[problem_id_column, PS2.Score, code_column]]
+        # For both  models, we only want code with a specific score
+        return merged[~merged[PS2.Score].isna()]
 
     def build(self, data: ProgSnap2Dataset):
         self.ps2_dataset = data
@@ -89,6 +91,7 @@ class SimpleAIFBuilder:
         assignment_code = SimpleAIFBuilder.get_code_table(data, assignment_submissions, self.problem_id_column, self.code_column)
 
         df = assignment_code.copy()
+        print(f"Found {len(df)} submissions for {self.problem_id}")
         df["Code"] = df[self.code_column]
         df["Correct"] = df["Score"] >= 1
         df = df[~df["Code"].isna()]
