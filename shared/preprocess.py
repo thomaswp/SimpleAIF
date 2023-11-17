@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+import json
+import math
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import classification_report
@@ -21,6 +23,8 @@ class SimpleAIFBuilder:
         self.submit_columns = [EventType.Submit, EventType.RunProgram, 'Project.Submit']
         self.ngram_range = (1,3)
         self.classifier_factory = lambda: XGBClassifier()
+        self.subgoal_json = None
+        self.subgoal_map = None
 
     def create_vectorizer(self):
         return CountVectorizer(
@@ -41,13 +45,20 @@ class SimpleAIFBuilder:
             # TODO: Add a naive classifier
         return IMBPipeline(stages)
 
+    def _get_assignment_row(self):
+        assignment_table = self.ps2_dataset.load_link_table(self.problem_id_column.replace("ID", ""))
+        if assignment_table is None:
+            return None
+        matching_rows = assignment_table[assignment_table[self.problem_id_column] == self.problem_id]
+        if len(matching_rows) == 0:
+            return None
+        return matching_rows.iloc[0]
+
     def get_starter_code(self):
         starter_code = ''
-        assignment_table = self.ps2_dataset.load_link_table(self.problem_id_column.replace("ID", ""))
-        if assignment_table is not None:
-            matching_rows = assignment_table[assignment_table[self.problem_id_column] == self.problem_id]
-            if len(matching_rows) > 0:
-                starter_code = matching_rows.iloc[0]["Starter" + self.code_column]
+        assignment_row = self._get_assignment_row()
+        if assignment_row is not None:
+            starter_code = assignment_row["Starter" + self.code_column]
         return starter_code
 
     def _create_progress_pipeline(self):
@@ -56,7 +67,7 @@ class SimpleAIFBuilder:
         vectorizer = self.create_vectorizer()
         return Pipeline([
             ("vectorizer", vectorizer),
-            ("classifier", ProgressEstimator(starter_code = starter_code, vectorizer = vectorizer))
+            ("classifier", ProgressEstimator(starter_code = starter_code, vectorizer = vectorizer, subgoal_map=self.subgoal_map))
         ])
 
     @staticmethod
@@ -69,9 +80,11 @@ class SimpleAIFBuilder:
     def get_code_table(data, submissions, problem_id_column, code_column):
 
         code_states = data.get_code_states_table()
-        return pd.merge(
+        merged = pd.merge(
             submissions, code_states, on=PS2.CodeStateID
         )[[problem_id_column, PS2.Score, code_column]]
+        # For both  models, we only want code with a specific score
+        return merged[~merged[PS2.Score].isna()]
 
     def build(self, data: ProgSnap2Dataset):
         self.ps2_dataset = data
@@ -81,12 +94,42 @@ class SimpleAIFBuilder:
         assignment_code = SimpleAIFBuilder.get_code_table(data, assignment_submissions, self.problem_id_column, self.code_column)
 
         df = assignment_code.copy()
+        # print(f"Found {len(df)} submissions for {self.problem_id}")
         df["Code"] = df[self.code_column]
         df["Correct"] = df["Score"] >= 1
         df = df[~df["Code"].isna()]
 
         self.X_train = df["Code"]
         self.y_train = df["Correct"]
+
+        self.build_subgoals()
+
+    def build_subgoals(self):
+        assignment_row = self._get_assignment_row()
+        if assignment_row is None:
+            return
+        subgoal_column = "Subgoals"
+        if subgoal_column not in assignment_row:
+            return
+        try:
+            subgoal_json =  assignment_row[subgoal_column]
+            if subgoal_json is None or not isinstance(subgoal_json, str) or len(subgoal_json) == 0:
+                return
+            self.subgoal_json = subgoal_json
+            # print(subgoal_json)
+            subgoal_items = json.loads(subgoal_json)
+        except Exception as e:
+            print(e)
+            return
+        subgoal_map = {}
+        for item in subgoal_items:
+            # print(item)
+            name = item["subgoalIndex"] # TODO: Get a real name
+            text = item["text"]
+            if name not in subgoal_map:
+                subgoal_map[name] = []
+            subgoal_map[name].append(text)
+        self.subgoal_map = subgoal_map
 
     def get_feature_names(self, correct_only = False):
         vectorizer = self.create_vectorizer()

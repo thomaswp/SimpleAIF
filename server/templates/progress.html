@@ -15,4 +15,12 @@
         <span>Your code may already be correct, but it looks different from other correct solutions. There may still be some bugs - keep going!</span>
         {% endif %}
     </p>
+    {% if show_subgoals %}
+    <h4>Subgoals</h4>
+        <p>
+            {% for key, value in subgoal_progresses.items() %}
+                <b>{{key}}</b>: {{value}} <br />
+            {% endfor %}
+        </p>
+    {% endif %}
 </div>
