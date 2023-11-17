@@ -141,3 +141,19 @@ For example
     "StarterCode": "def foo():\n\treturn 0"
 }
 ```
+
+## Deploying the model in production
+The defauly Flask app is not meant to be run in production. To run it in production, take the following steps:
+
+1. Install [Docker](https://docs.docker.com/get-docker/)
+2. Build the Docker image
+```bash
+docker build -t simple_aif .
+```
+3. Run the Docker image, using this command and replacing `<port>` with your desired port. Make sure your client uses the same port and that the port is open and forwarded.
+```bash
+docker run -p <port>:80 simple_aif
+```
+4. Verify that the server is running by visiting `http://localhost:<port>/` in your browser. You should see a message like `Hello, world!`.
+
+To stop the server, run `docker ps` to get the container ID, and then `docker stop <container_id>`.
