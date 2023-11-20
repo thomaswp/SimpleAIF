@@ -66,10 +66,14 @@ class PythonPreprocessor(BaseEstimator, TransformerMixin):
 
     @staticmethod
     def remove_comments_and_docstring(source: str) -> str:
-        try:
-            return PythonPreprocessor.__remove_via_parsing(source)
-        except:
-            return PythonPreprocessor.__remove_via_regex(source)
+        # TODO: The parsing stripper also does something weird with
+        # spacing that I don't like, so I'm not using it for now
+        # try:
+        #     stripped = PythonPreprocessor.__remove_via_parsing(source)
+        # except:
+        stripped = PythonPreprocessor.__remove_via_regex(source)
+        stripped = stripped.replace("\t", "    ")
+        return stripped
 
     @staticmethod
     def run_tests():

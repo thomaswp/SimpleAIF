@@ -79,7 +79,6 @@ class SimpleAIFBuilder:
             print ("Using python preprocessor")
             preprocessor = PythonPreprocessor()
             starter_code = PythonPreprocessor.remove_comments_and_docstring(starter_code)
-            print(starter_code)
         elif self.lang is not None:
             print(f"Unknown language {self.lang}")
 
