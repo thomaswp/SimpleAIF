@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from scipy.sparse import csr_matrix
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
@@ -81,6 +82,8 @@ class ProgressEstimator(BaseEstimator):
     def ensure_is_np_array(X):
         if isinstance(X, csr_matrix):
             X = X.toarray()
+        if isinstance(X, pd.Series):
+            X = X.values
         if not isinstance(X, np.ndarray):
             raise ValueError(f"X must be a numpy array or a scipy sparse matrix, not {type(X)}")
         return X

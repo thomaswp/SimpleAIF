@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import json
 import math
+from enum import Enum
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import classification_report
@@ -13,6 +14,9 @@ from imblearn.over_sampling import RandomOverSampler
 
 from shared.progsnap import ProgSnap2Dataset, PS2, EventType
 from shared.progress import ProgressEstimator
+from shared.python_preprocesser import PythonPreprocessor
+
+LANG_PYTHON = "python"
 
 class SimpleAIFBuilder:
     def __init__(self, problem_id, code_column=PS2.Code, problem_id_column=PS2.ProblemID):
@@ -25,6 +29,7 @@ class SimpleAIFBuilder:
         self.classifier_factory = lambda: XGBClassifier()
         self.subgoal_json = None
         self.subgoal_map = None
+        self.lang = None
 
     def create_vectorizer(self):
         return CountVectorizer(
@@ -40,9 +45,14 @@ class SimpleAIFBuilder:
             ("oversample", ros),
             ("classifier", self.classifier_factory())
         ]
+
         if self.y_train.mean() == 1 or self.y_train.mean() == 0:
             del stages[1]
             # TODO: Add a naive classifier
+
+        if self.lang == LANG_PYTHON:
+            stages.insert(0, ("preprocessor", PythonPreprocessor()))
+
         return IMBPipeline(stages)
 
     def _get_assignment_row(self):
@@ -64,11 +74,25 @@ class SimpleAIFBuilder:
     def _create_progress_pipeline(self):
         starter_code = self.get_starter_code()
 
+        preprocessor = None
+        if self.lang == LANG_PYTHON:
+            print ("Using python preprocessor")
+            preprocessor = PythonPreprocessor()
+            starter_code = PythonPreprocessor.remove_comments_and_docstring(starter_code)
+            print(starter_code)
+        elif self.lang is not None:
+            print(f"Unknown language {self.lang}")
+
         vectorizer = self.create_vectorizer()
-        return Pipeline([
+        stages = [
             ("vectorizer", vectorizer),
             ("classifier", ProgressEstimator(starter_code = starter_code, vectorizer = vectorizer, subgoal_map=self.subgoal_map))
-        ])
+        ]
+
+        if preprocessor is not None:
+            stages.insert(0, ("preprocessor", preprocessor))
+
+        return Pipeline(stages)
 
     @staticmethod
     def get_submissions_table(data, submit_columns = [EventType.Submit, EventType.RunProgram, 'Project.Submit']):
