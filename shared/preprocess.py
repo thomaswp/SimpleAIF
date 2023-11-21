@@ -186,6 +186,35 @@ class SimpleAIFBuilder:
             confusion_matrix(self.y_train, y_pred)
         )
 
+    def get_minimum_solution_cover(self):
+        progress_model_pipeline = self.get_trained_progress_model()
+        progress_model = progress_model_pipeline.named_steps["classifier"]
+        useful_indices = np.array(progress_model.useful_feature_indices)
+        vectorizer = progress_model_pipeline.named_steps["vectorizer"]
+        preprocessor = progress_model_pipeline.named_steps["preprocessor"] if "preprocessor" in progress_model_pipeline.named_steps else None
+        correct_submissions = self.get_correct_submissions()
+        if preprocessor is not None:
+            correct_submissions = preprocessor.transform(correct_submissions)
+        transformed_solutions = vectorizer.transform(correct_submissions)
+        transformed_solutions = transformed_solutions.toarray()
+        solution_cover = []
+        solution_cover_indices = []
+        # Get the solution that has the max number of useful features
+        while useful_indices.sum() > 0:
+            solution_coverages = np.apply_along_axis(lambda x: (x[useful_indices] > 0).sum(), axis=1, arr=transformed_solutions)
+            solution_coverages[solution_cover_indices] = -1
+            if solution_coverages.max() <= 0:
+                break
+            max_index = solution_coverages.argmax()
+            solution_cover.append(correct_submissions[max_index])
+            solution_cover_indices.append(max_index)
+            # Remove the features covered by this solution
+            useful_indices = useful_indices & (transformed_solutions[max_index] == 0)
+
+        return solution_cover
+
+
+
     def get_trained_classifier(self):
         classification_pipeline = self._create_classification_pipeline()
         return classification_pipeline.fit(
