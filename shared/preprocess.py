@@ -28,7 +28,7 @@ class SimpleAIFBuilder:
         self.ngram_range = (1,3)
         self.classifier_factory = lambda: XGBClassifier()
         self.subgoal_json = None
-        self.subgoal_map = None
+        self.subgoal_data = None
         self.lang = None
 
     def create_vectorizer(self):
@@ -85,7 +85,7 @@ class SimpleAIFBuilder:
         vectorizer = self.create_vectorizer()
         stages = [
             ("vectorizer", vectorizer),
-            ("classifier", ProgressEstimator(starter_code = starter_code, vectorizer = vectorizer, subgoal_map=self.subgoal_map))
+            ("classifier", ProgressEstimator(starter_code = starter_code, vectorizer = vectorizer, subgoal_data=self.subgoal_data))
         ]
 
         if preprocessor is not None:
@@ -140,19 +140,10 @@ class SimpleAIFBuilder:
                 return
             self.subgoal_json = subgoal_json
             # print(subgoal_json)
-            subgoal_items = json.loads(subgoal_json)
+            self.subgoal_data = json.loads(subgoal_json)
         except Exception as e:
             print(e)
             return
-        subgoal_map = {}
-        for item in subgoal_items:
-            # print(item)
-            name = item["subgoalIndex"] # TODO: Get a real name
-            text = item["text"]
-            if name not in subgoal_map:
-                subgoal_map[name] = []
-            subgoal_map[name].append(text)
-        self.subgoal_map = subgoal_map
 
     def get_feature_names(self, correct_only = False):
         vectorizer = self.create_vectorizer()

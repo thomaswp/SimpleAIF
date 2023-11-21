@@ -6,36 +6,29 @@ from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
 from sklearn.utils.multiclass import unique_labels
 from sklearn.metrics import euclidean_distances
 import warnings
+import shared.subgoals as subgoals
+
 
 class ProgressEstimator(BaseEstimator):
 
     # TODO: The problem with this approach is that if the model is rebuilt
     # the subgoals aren't stored anywhere, so they're lost
     def __init__(self, min_feature_proportion = 0.5, max_score_percentile = 0.25,
-                 starter_code = None, vectorizer = None, subgoal_map = None):
+                 starter_code = None, vectorizer = None, subgoal_data = None):
         self.min_feature_proportion = min_feature_proportion
         self.max_score_percentile = max_score_percentile
         self.vectorizer = vectorizer
         self.starter_code = starter_code
-        self.subgoal_map = subgoal_map
+        self.subgoal_data = subgoal_data
         self.subgoal_features = {}
 
         if starter_code is not None:
             if vectorizer is None:
                 raise ValueError("If starter_code is provided, vectorizer must also be provided")
 
-    @staticmethod
-    def should_focus(name, focus_lines):
-        for line in focus_lines:
-            # TODO: This is very naive: improve
-            if line in name or name in line:
-                return True
-        return False
-
-    def calculate_subgoal_features(self, focus_lines):
+    def calculate_subgoal_features(self, subgoal_index):
         feature_names = self.vectorizer.get_feature_names_out()
-        focused_features = np.array([ProgressEstimator.should_focus(name, focus_lines) for name in feature_names])
-        return focused_features
+        return np.array(subgoals.are_ngrams_relevant_for_subgoal_index(self.subgoal_data, feature_names, subgoal_index))
 
 
     def fit(self, X, y = None):
@@ -62,10 +55,19 @@ class ProgressEstimator(BaseEstimator):
         self.useful_feature_indices = self.useful_feature_indices & (self.mean_features > 0)
         # print(f"Went from {n_features} to {self.useful_feature_indices.mean()} features")
 
-        if self.subgoal_map is not None:
-            for key, value in self.subgoal_map.items():
-                self.subgoal_features[key] = self.calculate_subgoal_features(value)
-                print(f"Subgoal {key} has {self.subgoal_features[key].mean()}% features")
+        if self.subgoal_data is not None:
+            try:
+                header = self.subgoal_data["header"]
+                for subgoal in header:
+                    subgoal_name = subgoal["text"]
+                    subgoal_index = subgoal["subgoalIndex"]
+                    subgoal_name = subgoal_index # TODO: Fix
+                    self.subgoal_features[subgoal_name] = self.calculate_subgoal_features(subgoal_index)
+                    print(f"Subgoal [{subgoal_index}] {subgoal_name} has {self.subgoal_features[subgoal_name].mean()} features")
+            except Exception as e:
+                print("Error calculating subgoal features")
+                print(e)
+                self.subgoal_features = {}
 
         train_scores = self._progress_score(X_train)
         self.min_score = 0 #train_scores.min()
