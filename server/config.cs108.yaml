@@ -4,7 +4,7 @@ log_database: Logging
 
 # Indicates whether or not to show subgoals when available
 show_subgoals: True
-show_status: True
+show_status: False
 
 help_url: https://docs.google.com/document/d/1PpMrbRDUHrdWL8PgqQsWY6ck7KpdNUUpeCs3FvPzMxs/edit
 
@@ -13,7 +13,7 @@ build:
   # will *NOT* be built automatically from data (ignoring below parameters)
   # The system will search for server/data/<model_database>.db.
   # Note: you can use null or ~ to indicate no database
-  model_database: PriorData
+  model_database: PCRS
   # The minimum number of correct submisssions needed to provide feedback
   min_correct_count_for_feedback: 10
   # The database will be rebuilt each time it has this many more correct submissions
@@ -24,7 +24,7 @@ conditions:
   # all_intervention: All students receive the intervention
   # all_control: No students receive the intervention
   # random_student: Students are assigned to a random condition when first encountered
-  assignment: all_intervention
+  assignment: random_student
   # The probability a student is assigned to the intervention condition (0-1)
   # if assignment is set to a random setting
   intervention_probability: 0.5
