@@ -23,4 +23,5 @@ ENV FLASK_RUN_HOST=0.0.0.0
 ENV FLASK_RUN_PORT=80
 
 # Run flask using Gunicorn
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:80", "server.main:app"]
+# CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:80", "server.main:app"]
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:80", "--keyfile", "ssl/privkey.pem", "--certfile", "ssl/fullchain.pem", "server.main:app"]

@@ -8,3 +8,4 @@ __pycache__
 .conda
 myenv/
 server/config.yaml
+ssl/

@@ -144,9 +144,33 @@ For example
 
 ## Deploying the model in production
 
+### Optaining an SSL Certificate
+
+Before you begin, you should decide whether and how to obtain an SSL certificate, in order to serve over HTTPs. This is necessary for the client to access the server from most modern browsers and is recommended for security reasons.
+
+The easiest way to obtain a certificate is through [Let's Encrypt](https://letsencrypt.org/)'s Certbot. You can follow the instructions [here](https://letsencrypt.org/getting-started/) to obtain a certificate using Certbot. You will need to have a domain name pointing to your server's IP address.
+
+For the following steps, you will need to know where your certificate files are located. If use Let's Encrypt's Certbot, they will be in `/etc/letsencrypt/live/<domain_name>/`.
+
+**You will then need to copy these files to this folder**:
+```bash
+cp /etc/letsencrypt/live/<domain_name>/fullchain.pem ssl/
+cp /etc/letsencrypt/live/<domain_name>/privkey.pem ssl/
+```
+
+**Note**: You will need to repeat this process each time the certificate is renewed. An alternative is to use a symlink:
+```bash
+ln -s /etc/letsencrypt/live/<domain_name>/fullchain.pem ssl/fullchain.pem
+ln -s /etc/letsencrypt/live/<domain_name>/privkey.pem ssl/privkey.pem
+```
+
+If you chose *not* to use SSL, you may need to change the final CMD in the Doockerfile to omit the `--certfile` and `--keyfile` arguments.
+
+### Building with Docker
+
 **Note**: Before deploying, make sure your have followed the checklist below to make sure everything is up to date.
 
-The defauly Flask app is not meant to be run in production. To run it in production, take the following steps:
+The default Flask app is not meant to be run in production. To run it in production, take the following steps:
 
 1. Install [Docker](https://docs.docker.com/get-docker/)
 2. Build the Docker image
@@ -158,6 +182,7 @@ docker build -t simple_aif .
 docker run -p <port>:80  -v /<path-on-server>/SimpleAIF/server/data:/app/server/data simple_aif
 ```
   * **Note**: Mapping the data folder is necessary to persist the database between runs. Otherwise it will be **deleted** when the container is stopped.
+  * **Note**: If serving HTTPS content, you should use port 443 instead of 80.
 4. Verify that the server is running by visiting `http://localhost:<port>/` in your browser. You should see a message like `Hello, world!`.
 5. Verify that `server/data/Logging.db` has been created. This may require you to use the server.
 
