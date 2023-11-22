@@ -153,11 +153,13 @@ The defauly Flask app is not meant to be run in production. To run it in product
 ```bash
 docker build -t simple_aif .
 ```
-3. Run the Docker image, using this command and replacing `<port>` with your desired port. Make sure your client uses the same port and that the port is open and forwarded.
+3. Run the Docker image, using this command and replacing `<port>` with your desired port, and `<path-on-server>` with the absolute path to the SimpleAIF repository you are working in. Make sure your client uses the same port and that the port is open and forwarded.
 ```bash
-docker run -p <port>:80 simple_aif
+docker run -p <port>:80  -v /<path-on-server>/SimpleAIF/server/data:/app/server/data simple_aif
 ```
+  * **Note**: Mapping the data folder is necessary to persist the database between runs. Otherwise it will be **deleted** when the container is stopped.
 4. Verify that the server is running by visiting `http://localhost:<port>/` in your browser. You should see a message like `Hello, world!`.
+5. Verify that `server/data/Logging.db` has been created. This may require you to use the server.
 
 To stop the server, run `docker ps` to get the container ID, and then `docker stop <container_id>`.
 
@@ -173,6 +175,9 @@ After deployment steps:
 * Make sure that your client loads the .css file served at `https://<server_url>/static/progress.css`.
 * Test all problems that will be deployed manually to see if they work as expected.
 * Test condition assignment - try logging in with a few different accounts and make sure some see the feedback and others don't.
-* Test logging: make sure that the Logging.db database contains entries in the MainEvent and CodeSatates tables.
+  * Make sure the client works well even when no actions are received, e.g. if a user is in the control condition.
+* Test logging: make sure that the server/data/Logging.db database contains entries in the MainEvent and CodeSatates tables.
   * You can do this via the command line following the instructions [here](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-sqlite-on-ubuntu-20-04).
   * Try `SELECT * FROM MainEvent;` and `SELECT * FROM CodeStates;` to see if they contain any entries, and make sure they match your testing.
+  * You can also copy the Logging.db to your local machine for inspection.
+* Stop and restart the docker image and verify that the Logging.db persists.

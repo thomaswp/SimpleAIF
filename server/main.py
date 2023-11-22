@@ -116,7 +116,7 @@ class FeedbackGenerator(Resource):
         state = str(LOG_DATABASE) + str(id)
         random.seed(state)
         is_intervention = random.random() < CONDITIONS_INTERVENTION_PROBABILITY
-        print(f"Random condition for {id}: {is_intervention}")
+        # print(f"Random condition for {id}: {is_intervention}")
         return is_intervention
 
 
@@ -147,7 +147,7 @@ class FeedbackGenerator(Resource):
         score = classifier.predict_proba([code])[0,1]
         progress = progress_model.predict_proba([code], subgoal_list=subgoal_list)[0]
 
-        print(f"Progress: {progress}; Score: {score}")
+        # print(f"Progress: {progress}; Score: {score}")
         status = "In Progress"
         cutoff = 0.9
         if progress > cutoff:
