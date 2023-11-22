@@ -143,6 +143,9 @@ For example
 ```
 
 ## Deploying the model in production
+
+**Note**: Before deploying, make sure your have followed the checklist below to make sure everything is up to date.
+
 The defauly Flask app is not meant to be run in production. To run it in production, take the following steps:
 
 1. Install [Docker](https://docs.docker.com/get-docker/)
@@ -157,3 +160,19 @@ docker run -p <port>:80 simple_aif
 4. Verify that the server is running by visiting `http://localhost:<port>/` in your browser. You should see a message like `Hello, world!`.
 
 To stop the server, run `docker ps` to get the container ID, and then `docker stop <container_id>`.
+
+
+### Deployment checklist
+
+Before deployment steps (above):
+* Make sure to do a `git pull` to make sure you code is up to date.
+* Make sure your config.yaml is up to date.
+* If using a pre-built model, make sure the model is up-to-date, located in the server/data folder, and that the config.yaml's `model_database` field matches it (without the .db extension).
+
+After deployment steps:
+* Make sure that your client loads the .css file served at `https://<server_url>/static/progress.css`.
+* Test all problems that will be deployed manually to see if they work as expected.
+* Test condition assignment - try logging in with a few different accounts and make sure some see the feedback and others don't.
+* Test logging: make sure that the Logging.db database contains entries in the MainEvent and CodeSatates tables.
+  * You can do this via the command line following the instructions [here](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-sqlite-on-ubuntu-20-04).
+  * Try `SELECT * FROM MainEvent;` and `SELECT * FROM CodeStates;` to see if they contain any entries, and make sure they match your testing.
