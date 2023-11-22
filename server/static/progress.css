@@ -14,13 +14,15 @@
 .bar-container {
 	display:flex;
 	align-items:center;
+	max-width: 800;
 }
 
 #progress {
 	animation: progress-colors 1s ease;
 	animation-play-state: paused;
 	animation-delay: calc(-0.99s * var(--percent));
-	width: 50%;
+	flex: 1;
+	min-width: 100px;
 	height: 30px;
 	margin-left: 10px;
 }
@@ -43,7 +45,7 @@
 
 .explanation {
 	transition: opacity 0.5s, height 0.25s;
-	opacity: 0;
+	opacity: 1;
 	margin: 10px;
 	cursor: default;
 	min-height: 70px;
@@ -83,4 +85,43 @@
 
 .status-div.in-progress {
 	background-color: rgb(108, 117, 125);
+}
+
+
+.subgoal-item {
+	display: flex;
+	width: 100%;
+}
+
+.subgoal-boxes {
+	display: flex;
+	justify-content: space-between;
+	min-width: 45px;
+    height: 25px;
+    margin: 2px;
+    margin-right: 5px;
+    padding: 2px;
+    border: thin solid green;
+    border-radius: 5px;
+}
+
+.subgoal-box {
+	flex: 1;
+	box-sizing: border-box;
+    margin-right: 1px;
+    margin-left: 1px;
+    border: solid green 2px;
+    border-radius: 3px;
+}
+
+.subgoal-box-working {
+	background-color: rgb(120, 143, 83);
+}
+
+.subgoal-box-filled {
+	background-color: rgb(155, 219, 52);
+}
+
+.help-url {
+	font-size: small;
 }

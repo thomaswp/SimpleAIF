@@ -1,9 +1,12 @@
 
 # Name of the database/system to use
-log_database: Logging 
+log_database: Logging
 
 # Indicates whether or not to show subgoals when available
 show_subgoals: False
+show_status: True
+
+help_url: https://docs.google.com/document/d/1PpMrbRDUHrdWL8PgqQsWY6ck7KpdNUUpeCs3FvPzMxs/edit
 
 build:
   # If provided, the models will be loaded from this database and they

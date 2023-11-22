@@ -1,9 +1,41 @@
 <div>
-    <div class="bar-container">
-        <label class="progress-label" for="progress">Progress:</label>
-        <progress id="progress" value="{{progress}}" max="{{max_score}}" style="--percent: {{percent}}"></progress>
-        <div class="{{status_class}} status-div"><span class="status">{{status}}</span></div>
+    <h5 class="subgoal_header">
+        Progress Feedback
+        {% if show_subgoals %}
+        and Goals
+        {% endif%}
+    </h5>
+    {% if show_subgoals %}
+    <div class="subgoal-container">
+        {% for subgoal in subgoal_list %}
+            <div class="subgoal-item">
+                <div class="subgoal-boxes" title="Estimated progress on this goal.">
+                    {% set progress = subgoal["score"] %}
+                    {% for i in range(3) %}
+                        {% if (i + 1) / 3 < progress or progress > 0.9 %}
+                            <div class="subgoal-box subgoal-box-filled"></div>
+                        {% elif (i + 0.25) / 3 < progress %}
+                            <div class="subgoal-box subgoal-box-working"></div>
+                        {% else %}
+                            <div class="subgoal-box"></div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <div>
+                    <span class="subgoal-desc"><b>Goal {{ loop.index }}</b>: {{subgoal["name"]}}</span>
+                </div>
+            </div>
+        {% endfor %}
     </div>
+    {% endif %}
+    <div class="bar-container">
+        <label class="progress-label" for="progress">Estimated Progress:</label>
+        <progress id="progress" value="{{progress}}" max="{{max_score}}" style="--percent: {{percent}}"></progress>
+        {% if show_status %}
+            <div class="{{status_class}} status-div"><span class="status">{{status}}</span></div>
+        {% endif %}
+    </div>
+    {% if show_status %}
     <p class="explanation">
         {% if status == 'In Progress': %}
         <span>You're still making progress on your code.</span>
@@ -15,12 +47,10 @@
         <span>Your code may already be correct, but it looks different from other correct solutions. There may still be some bugs - keep going!</span>
         {% endif %}
     </p>
-    {% if show_subgoals %}
-    <h4>Subgoals</h4>
-        <p>
-            {% for key, value in subgoal_progresses.items() %}
-                <b>{{key}}</b>: {{value}} <br />
-            {% endfor %}
-        </p>
+    {% endif %}
+    {% if help_url is not none %}
+    <p class="help-url">
+        <a href="{{help_url}}" target="_blank">What is this?</a>
+    </p>
     {% endif %}
 </div>

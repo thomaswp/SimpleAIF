@@ -33,6 +33,9 @@ print(config)
 LOG_DATABASE = config["log_database"]
 
 SHOW_SUBGOALS = config["show_subgoals"]
+SHOW_STATUS = config["show_status"]
+
+HELP_URL = config["help_url"]
 
 BUILD_MODEL_DATABASE = config["build"]["model_database"]
 BUILD_MIN_CORRECT_COUNT_FOR_FEEDBACK = config["build"]["min_correct_count_for_feedback"]
@@ -136,15 +139,14 @@ class FeedbackGenerator(Resource):
         if models is None:
             return []
         progress_model, classifier = models
-        score = classifier.predict_proba([code])[0,1]
-        progress = progress_model.predict_proba([code])[0]
-        # TODO: Get the indices from somewhere, and whether subgoals exist for this problem!
-        subgoal_progresses = {}
+
+        subgoal_list = None
         if SHOW_SUBGOALS:
-            subgoal_progresses = {
-                index: progress_model.predict_proba([code], subgoal=index)[0]
-                for index in range(4)
-            }
+            subgoal_list = []
+
+        score = classifier.predict_proba([code])[0,1]
+        progress = progress_model.predict_proba([code], subgoal_list=subgoal_list)[0]
+
         print(f"Progress: {progress}; Score: {score}")
         status = "In Progress"
         cutoff = 0.9
@@ -162,8 +164,10 @@ class FeedbackGenerator(Resource):
             max_score=cutoff,
             status=status,
             status_class=status_class,
-            subgoal_progresses=subgoal_progresses,
-            show_subgoals=SHOW_SUBGOALS,
+            subgoal_list=subgoal_list,
+            show_subgoals=SHOW_SUBGOALS and len(subgoal_list) > 0,
+            show_status=SHOW_STATUS,
+            help_url=HELP_URL,
             percent=max(0, min(progress/cutoff, 1)),
         )
         return [

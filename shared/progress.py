@@ -61,9 +61,8 @@ class ProgressEstimator(BaseEstimator):
                 for subgoal in header:
                     subgoal_name = subgoal["text"]
                     subgoal_index = subgoal["subgoalIndex"]
-                    subgoal_name = subgoal_index # TODO: Fix
                     self.subgoal_features[subgoal_name] = self.calculate_subgoal_features(subgoal_index)
-                    print(f"Subgoal [{subgoal_index}] {subgoal_name} has {self.subgoal_features[subgoal_name].mean()} features")
+                    print(f"Subgoal [{subgoal_index}] {subgoal_name} has {self.subgoal_features[subgoal_name].sum()} / {self.useful_feature_indices.sum()} features")
             except Exception as e:
                 print("Error calculating subgoal features")
                 print(e)
@@ -92,31 +91,41 @@ class ProgressEstimator(BaseEstimator):
 
 
     # TODO: Could almost certainly be made more efficient
-    def _progress_score_single(self, features, useful_feature_indices):
+    def _progress_score_single(self, features, useful_feature_indices, ignore_counts=False):
         # Subtract the starting feature values and divide by the average
         completion = (features[useful_feature_indices] - self.starter_code_means[useful_feature_indices]) / \
             self.mean_features[useful_feature_indices]
+        if ignore_counts:
+            completion = completion > 0
         completion = np.clip(completion, 0, 1)
         return completion.mean()
 
     def _progress_score(self, X, mask = None):
         useful_feature_indices = self.useful_feature_indices
+        ignore_counts = mask is not None
         if mask is not None:
             useful_feature_indices = useful_feature_indices & mask
-        return np.apply_along_axis(lambda x: self._progress_score_single(x, useful_feature_indices), 1, X)
+        return np.apply_along_axis(
+            lambda x: self._progress_score_single(
+                x, useful_feature_indices, ignore_counts
+            ), 1, X)
 
-    def predict_proba(self, X, subgoal = None):
+    def predict_proba(self, X, subgoal_list = None):
         # Check if fit has been called
         # Buggy for some reason...
         # check_is_fitted(self)
 
         X = self.ensure_is_np_array(X)
 
-        subgoal_mask = None
-        if subgoal is not None and subgoal in self.subgoal_features:
-            subgoal_mask = self.subgoal_features.get(subgoal)
+        if subgoal_list is not None and isinstance(subgoal_list, list):
+            for name, mask in self.subgoal_features.items():
+                # TODO: Scale?
+                subgoal_list.append({
+                    "name": name,
+                    "score": self._progress_score(X, mask)
+                })
 
-        scores = self._progress_score(X, subgoal_mask)
+        scores = self._progress_score(X)
         scaled =  (scores - self.min_score) / (self.max_score - self.min_score)
         return scaled.clip(0, 1)
 
