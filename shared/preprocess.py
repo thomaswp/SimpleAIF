@@ -30,11 +30,12 @@ class SimpleAIFBuilder:
         self.subgoal_json = None
         self.subgoal_data = None
         self.lang = None
+        self.token_pattern = r"[\w]+|[^\s]|[ ]{4}"
 
     def create_vectorizer(self):
         return CountVectorizer(
             lowercase=False,
-            token_pattern="[\w]+|[^\s]|[ ]{4}",
+            token_pattern=self.token_pattern,
             ngram_range=self.ngram_range
         )
 

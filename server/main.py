@@ -100,6 +100,7 @@ class FeedbackGenerator(Resource):
             return
         try:
             dataset = ProgSnap2Dataset(SQLiteDataProvider(logger.db_path))
+            # TODO: Need to inherit build config from somwhere!
             builder = SimpleAIFBuilder(problem_id)
             builder.build(dataset)
             progress_model = builder.get_trained_progress_model()
