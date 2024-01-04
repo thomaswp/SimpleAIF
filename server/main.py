@@ -187,9 +187,12 @@ def generate_feedback_from_request():
     json = request.get_json()
     code = json["CodeState"]
     problem_id = json["ProblemID"]
-    subject_id = json["SubjectID"]
-    if (not fb_gen.is_intervention_group(subject_id, problem_id)):
-        return []
+    if ("SubjectID" in json):
+        subject_id = json["SubjectID"]
+        if (not fb_gen.is_intervention_group(subject_id, problem_id)):
+            return []
+    else:
+        print("Warning: No SubjectID provided")
     return fb_gen.generate_feedback(problem_id, code)
 
 @app.route('/', methods=['GET'])
