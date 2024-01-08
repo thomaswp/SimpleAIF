@@ -82,7 +82,6 @@ class FeedbackGenerator(Resource):
 
     def __init__(self) -> None:
         super().__init__()
-        self.models = {}
         self.loggers = {}
         path = relative_path("templates/progress.html")
         file=open(path,"r")
