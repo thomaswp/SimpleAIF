@@ -1,0 +1,35 @@
+
+# Name of the database/system to use
+log_database: Logging
+
+# Indicates whether or not to show subgoals when available
+show_subgoals: True
+show_status: False
+
+help_url: https://docs.google.com/document/d/1ePqk_NcLzBy_AjZkAQZdMpdk-12b2mHZaqViUniBHzg/edit
+
+build:
+  # If provided, the models will be loaded from this database, and metadata
+  # from this database (e.g. starter code, subgoals) will be used if the
+  # models are rebuilt.
+  model_database: CSC111
+  # If True, the system will periodically rebuild the models using student data.
+  rebuild_models: True
+  # The minimum number of correct submisssions needed to provide feedback
+  min_correct_count_for_feedback: 1
+  # The database will be rebuilt each time it has this many more correct submissions
+  increment: 5
+  # The programming language being used. Supported values are:
+  # * python: a special python preprocessor will be used
+  # * ~: no preprocessor will be used
+  language: python
+
+conditions:
+  # Options:
+  # all_intervention: All students receive the intervention
+  # all_control: No students receive the intervention
+  # random_student: Students are assigned to a random condition when first encountered
+  assignment: random_student
+  # The probability a student is assigned to the intervention condition (0-1)
+  # if assignment is set to a random setting
+  intervention_probability: 0.5
