@@ -4,16 +4,13 @@ import yaml
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from flask import Flask, request, render_template_string
-from flask_restful import Resource, Api
+from flask_restful import Resource
 from flask_cors import CORS
-import pickle
-from sklearn.ensemble import AdaBoostClassifier
-from xgboost import XGBClassifier
-from shared.progress import ProgressEstimator
 from shared.data import SQLiteLogger
 from shared.database import SQLiteDataProvider
 from shared.progsnap import ProgSnap2Dataset
 from shared.preprocess import SimpleAIFBuilder
+from sklearn.dummy import DummyClassifier
 
 app = Flask(__name__)
 CORS(app)
@@ -40,6 +37,8 @@ HELP_URL = config["help_url"]
 BUILD_MODEL_DATABASE = config["build"]["model_database"]
 BUILD_MIN_CORRECT_COUNT_FOR_FEEDBACK = config["build"]["min_correct_count_for_feedback"]
 BUILD_INCREMENT = config["build"]["increment"]
+BUILD_LANG = config["build"]["language"]
+# TODO: Add token pattern
 
 CONDITIONS_ASSIGNMENT = config["conditions"]["assignment"]
 CONDITIONS_INTERVENTION_PROBABILITY = config["conditions"]["intervention_probability"]
@@ -101,9 +100,15 @@ class FeedbackGenerator(Resource):
         try:
             dataset = ProgSnap2Dataset(SQLiteDataProvider(logger.db_path))
             builder = SimpleAIFBuilder(problem_id)
+            builder.lang = BUILD_LANG
+            # TODO: Add token pattern
             builder.build(dataset)
             progress_model = builder.get_trained_progress_model()
-            classifier = builder.get_trained_classifier()
+            if SHOW_STATUS:
+                classifier = builder.get_trained_classifier()
+            else:
+                # If we aren't using the classifier, just leave it blank
+                classifier = None
             correct_count = int(builder.X_train[builder.y_train].unique().size)
             logger.set_models(problem_id, progress_model, classifier, correct_count)
             print(f"Successfully rebuilt AIF for {problem_id} with {correct_count} unique correct submissions")
@@ -144,7 +149,7 @@ class FeedbackGenerator(Resource):
         if SHOW_SUBGOALS:
             subgoal_list = []
 
-        score = classifier.predict_proba([code])[0,1]
+        score = classifier.predict_proba([code])[0,1] if classifier is not None else 0
         progress = progress_model.predict_proba([code], subgoal_list=subgoal_list)[0]
 
         # print(f"Progress: {progress}; Score: {score}")

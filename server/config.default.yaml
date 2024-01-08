@@ -18,6 +18,10 @@ build:
   min_correct_count_for_feedback: 10
   # The database will be rebuilt each time it has this many more correct submissions
   increment: 5
+  # The programming language being used. Supported values are:
+  # * python: a special python preprocessor will be used
+  # * ~: no preprocessor will be used
+  language: ~
 
 conditions:
   # Options:
