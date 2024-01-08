@@ -136,3 +136,35 @@ class SQLiteDataProvider(PS2DataProvider):
             return pd.read_sql_query(f"SELECT * FROM {self.link_table_prefix}{table_name}", self.__connect())
         except:
             return None
+
+class MultiDataProvider(PS2DataProvider):
+    def __init__(self, providers: list[SQLiteDataProvider]) -> None:
+        super().__init__()
+        self.providers = providers
+
+    def merge_dataframes(self, dfs: list[DataFrame]) -> DataFrame:
+        return pd.concat(dfs)
+
+    def get_main_table(self):
+        return self.merge_dataframes([p.get_main_table() for p in self.providers])
+
+    def get_code_states_table(self):
+        # TODO: If this is going to support merging non-empty code states tables,
+        # we need to recode the IDs
+        return self.merge_dataframes([p.get_code_states_table() for p in self.providers])
+
+    def get_metadata_table(self):
+        return self.providers[0].get_metadata_table()
+
+    def get_link_table_names(self):
+        names = set()
+        for p in self.providers:
+            names.update(p.get_link_table_names())
+        return list(names)
+
+    def get_link_table(self, table_name):
+        dfs = [p.get_link_table(table_name) for p in self.providers]
+        dfs = [df for df in dfs if df is not None]
+        if len(dfs) == 0:
+            return None
+        return self.merge_dataframes(dfs)

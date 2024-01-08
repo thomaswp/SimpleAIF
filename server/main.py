@@ -7,7 +7,7 @@ from flask import Flask, request, render_template_string
 from flask_restful import Resource
 from flask_cors import CORS
 from shared.data import SQLiteLogger
-from shared.database import SQLiteDataProvider
+from shared.database import SQLiteDataProvider, MultiDataProvider
 from shared.progsnap import ProgSnap2Dataset
 from shared.preprocess import SimpleAIFBuilder
 from sklearn.dummy import DummyClassifier
@@ -35,6 +35,7 @@ SHOW_STATUS = config["show_status"]
 HELP_URL = config["help_url"]
 
 BUILD_MODEL_DATABASE = config["build"]["model_database"]
+BUILD_REBUILD_MODELS = config["build"]["rebuild_models"]
 BUILD_MIN_CORRECT_COUNT_FOR_FEEDBACK = config["build"]["min_correct_count_for_feedback"]
 BUILD_INCREMENT = config["build"]["increment"]
 BUILD_LANG = config["build"]["language"]
@@ -53,15 +54,28 @@ class FeedbackGenerator(Resource):
         self.loggers[system_id] = logger
         return logger
 
-    def load_models_from_db(self, problem_id):
-        # Use the build database is provided, otherwise use the log database
-        # TODO: Ideally this would be dynamically decided based on if
-        # the problem exists in the database (as would rebuilding)
-        database = BUILD_MODEL_DATABASE
-        if database is None:
-            database = LOG_DATABASE
+    def load_models_from_logger(self, problem_id, database):
         logger = self.get_logger(database)
         models = logger.get_models(problem_id)
+        return models
+
+
+    def load_models_from_db(self, problem_id):
+        # If we don't have a model database, just use the log database
+        if BUILD_MODEL_DATABASE is None:
+            database = LOG_DATABASE
+        # If we aren't rebuilding models, just use the model database
+        elif not BUILD_REBUILD_MODELS:
+            database = BUILD_MODEL_DATABASE
+        # If we have a model database, but we're also rebuilding models...
+        else:
+            # First check if we've build this model from log data
+            database = LOG_DATABASE
+            models = self.load_models_from_logger(problem_id, database)
+            # If we haven't, check the model database
+            if models is None:
+                database = BUILD_MODEL_DATABASE
+        models = self.load_models_from_logger(problem_id, database)
         if models is None:
             print(f"Model not found for {problem_id} in {database}.db")
         return models
@@ -90,15 +104,20 @@ class FeedbackGenerator(Resource):
             self.rebuild_if_needed(dict["ProblemID"])
 
     def rebuild_if_needed(self, problem_id):
-        # We never rebuild if we have an existing build database
-        if BUILD_MODEL_DATABASE is not None:
+        if not BUILD_REBUILD_MODELS:
             return
         problem_id = str(problem_id)
         logger = self.get_logger(LOG_DATABASE)
         if not logger.should_rebuild_model(problem_id, BUILD_MIN_CORRECT_COUNT_FOR_FEEDBACK, BUILD_INCREMENT):
             return
         try:
-            dataset = ProgSnap2Dataset(SQLiteDataProvider(logger.db_path))
+            logging_provider = SQLiteDataProvider(logger.db_path)
+            if BUILD_MODEL_DATABASE is None:
+                provider = logging_provider
+            else:
+                model_provider = SQLiteDataProvider(self.get_logger(BUILD_MODEL_DATABASE).db_path)
+                provider = MultiDataProvider([logging_provider, model_provider])
+            dataset = ProgSnap2Dataset(provider)
             builder = SimpleAIFBuilder(problem_id)
             builder.lang = BUILD_LANG
             # TODO: Add token pattern
@@ -232,4 +251,4 @@ def set_starter_code():
 # api.add_resource(HelloWorld, '/')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(port=5500, debug=True)

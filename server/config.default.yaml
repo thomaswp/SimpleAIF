@@ -9,11 +9,12 @@ show_status: True
 help_url: https://docs.google.com/document/d/1PpMrbRDUHrdWL8PgqQsWY6ck7KpdNUUpeCs3FvPzMxs/edit
 
 build:
-  # If provided, the models will be loaded from this database and they
-  # will *NOT* be built automatically from data (ignoring below parameters)
-  # The system will search for server/data/<model_database>.db.
-  # Note: you can use null or ~ to indicate no database
+  # If provided, the models will be loaded from this database, and metadata
+  # from this database (e.g. starter code, subgoals) will be used if the
+  # models are rebuilt.
   model_database: PriorData
+  # If True, the system will periodically rebuild the models using student data.
+  rebuild_models: False
   # The minimum number of correct submisssions needed to provide feedback
   min_correct_count_for_feedback: 10
   # The database will be rebuilt each time it has this many more correct submissions
