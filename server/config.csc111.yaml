@@ -33,3 +33,28 @@ conditions:
   # The probability a student is assigned to the intervention condition (0-1)
   # if assignment is set to a random setting
   intervention_probability: 0.5
+  # List problems where conditions should be reversed
+  inverse_problems:
+  - inlab8
+  - homework8
+  - inlab9
+  - homework9
+  - inlab10
+  - homework10
+  - inlab11
+  - homework11
+  - inlab12
+  - homework12
+  - inlab13
+  - homework13
+  - inlab14
+  - homework14
+  - inlab15
+  - homework15
+  - inlab16
+  - homework16
+  # A map of problems where manual assignment should override the
+  # primary assignment strategy
+  manually_assigned_problems:
+    inlab2: intervention
+    homework2: intervention

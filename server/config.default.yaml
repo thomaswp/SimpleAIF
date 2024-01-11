@@ -33,3 +33,10 @@ conditions:
   # The probability a student is assigned to the intervention condition (0-1)
   # if assignment is set to a random setting
   intervention_probability: 0.5
+  # List problems where conditions should be reversed
+  inverse_problems: []
+  # A map of problems where manual assignment should override the
+  # primary assignment strategy. Values include "control" and "intervention".
+  manually_assigned_problems:
+    probID1: control
+    probID2: intervention

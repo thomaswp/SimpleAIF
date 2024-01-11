@@ -43,6 +43,8 @@ BUILD_LANG = config["build"]["language"]
 
 CONDITIONS_ASSIGNMENT = config["conditions"]["assignment"]
 CONDITIONS_INTERVENTION_PROBABILITY = config["conditions"]["intervention_probability"]
+CONDITIONS_INVERSE_PROBLEMS = config["conditions"]["inverse_problems"]
+CONDITIONS_MANUALLY_ASSIGNED_PROBLEMS = config["conditions"]["manually_assigned_problems"]
 
 class FeedbackGenerator(Resource):
 
@@ -144,6 +146,10 @@ class FeedbackGenerator(Resource):
 
 
     def is_intervention_group(self, subject_id, problem_id):
+        if problem_id in CONDITIONS_MANUALLY_ASSIGNED_PROBLEMS:
+            is_intervention = CONDITIONS_MANUALLY_ASSIGNED_PROBLEMS[problem_id] == "intervention"
+            # print (f"Manually assigned problem: {problem_id} is intervention: {is_intervention}")
+            return is_intervention
         if CONDITIONS_ASSIGNMENT == "all_control":
             return False
         if CONDITIONS_ASSIGNMENT == "all_intervention":
@@ -151,7 +157,11 @@ class FeedbackGenerator(Resource):
         logger = self.get_logger(LOG_DATABASE)
         subject_condition = logger.get_or_set_subject_condition(
             subject_id, self.default_condition_is_intervention(subject_id))
+        if problem_id in CONDITIONS_INVERSE_PROBLEMS:
+            # print(f"Problem {problem_id} is inverse; switching {subject_condition} to {not subject_condition}")
+            subject_condition = not subject_condition
         if CONDITIONS_ASSIGNMENT == "random_student":
+            # print(f"Random student condition for {subject_id} on {problem_id}: {subject_condition}")
             return subject_condition
         else:
             print(f"Unknown condition assignment: {CONDITIONS_ASSIGNMENT}")
