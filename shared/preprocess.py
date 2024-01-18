@@ -15,8 +15,10 @@ from imblearn.over_sampling import RandomOverSampler
 from shared.progsnap import ProgSnap2Dataset, PS2, EventType
 from shared.progress import ProgressEstimator
 from shared.python_preprocesser import PythonPreprocessor
+from shared.sql_preprocessor import SQLPreprocessor
 
 LANG_PYTHON = "python"
+LANG_SQL = "sql"
 
 class SimpleAIFBuilder:
     def __init__(self, problem_id, code_column=PS2.Code, problem_id_column=PS2.ProblemID):
@@ -53,6 +55,8 @@ class SimpleAIFBuilder:
 
         if self.lang == LANG_PYTHON:
             stages.insert(0, ("preprocessor", PythonPreprocessor()))
+        elif self.lang == LANG_SQL:
+            stages.insert(0, ("preprocessor", SQLPreprocessor()))
 
         return IMBPipeline(stages)
 
@@ -80,6 +84,10 @@ class SimpleAIFBuilder:
             print ("Using python preprocessor")
             preprocessor = PythonPreprocessor()
             starter_code = PythonPreprocessor.remove_comments_and_docstring(starter_code)
+        elif self.lang == LANG_SQL:
+            print ("Using sql preprocessor")
+            preprocessor = SQLPreprocessor()
+            starter_code = SQLPreprocessor.remove_comments_and_to_lower(starter_code)
         elif self.lang is not None:
             print(f"Unknown language {self.lang}")
 
