@@ -21,7 +21,7 @@ class SQLPreprocessor(BaseEstimator, TransformerMixin):
                 continue
             out += line + "\n"
         return out
-    
+
     __mysql_keywords = [
         "SELECT", "FROM", "WHERE", "AND", "OR", "NOT", "ORDER BY",
         "GROUP BY", "HAVING", "INNER JOIN", "LEFT JOIN", "RIGHT JOIN",
@@ -47,7 +47,12 @@ class SQLPreprocessor(BaseEstimator, TransformerMixin):
 
     @staticmethod
     def remove_comments_and_to_lower(source: str) -> str:
-        return SQLPreprocessor.capitalize_keywords(SQLPreprocessor.__remove_comments(source))
+        capitalized = SQLPreprocessor.capitalize_keywords(source)
+        # print(source)
+        # print('--------------')
+        # print(capitalized)
+        decommented = SQLPreprocessor.__remove_comments(capitalized)
+        return decommented
 
 __tests = [
 """
@@ -57,7 +62,7 @@ create table MovieTheatre(
 	Location varchar,
     --- this is a comment
 	PostalCode varchar check (length(postalcode) = 6)
-); 
+);
 
 create type loyalty_tier as enum('none', 'bronze', 'silver', 'gold');
 
@@ -78,7 +83,7 @@ create table Watch(
 	constraint theatrewatch_fk foreign key (tid) references movietheatre(tid),
 	constraint customerwatch_fk foreign key (cid) references customer(cid),
 	primary key(mid, tid, cid)
-); 
+);
 
 """
 ]

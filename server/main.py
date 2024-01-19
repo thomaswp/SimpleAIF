@@ -177,7 +177,7 @@ class FeedbackGenerator(Resource):
         if SHOW_SUBGOALS:
             subgoal_list = []
 
-        score = classifier.predict_proba([code])[0,1] if classifier is not None else 0
+        score = classifier.predict_proba([code])[0,1] if SHOW_STATUS and classifier is not None else 0
         progress = progress_model.predict_proba([code], subgoal_list=subgoal_list)[0]
 
         # print(f"Progress: {progress}; Score: {score}")

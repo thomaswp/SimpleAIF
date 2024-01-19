@@ -21,6 +21,7 @@ build:
   increment: 5
   # The programming language being used. Supported values are:
   # * python: a special python preprocessor will be used
+  # * sql: a SQL preprocessor will be used to normalize capitalization
   # * ~: no preprocessor will be used
   language: ~
 
@@ -37,6 +38,7 @@ conditions:
   inverse_problems: []
   # A map of problems where manual assignment should override the
   # primary assignment strategy. Values include "control" and "intervention".
+  # NOTE: If your problem IDs are number, put them in quotes: ProblemID must be a string
   manually_assigned_problems:
     probID1: control
     probID2: intervention
