@@ -47,6 +47,7 @@ class SQLPreprocessor(BaseEstimator, TransformerMixin):
 
     @staticmethod
     def remove_comments_and_to_lower(source: str) -> str:
+        source = source.replace('\t', '    ')
         capitalized = SQLPreprocessor.capitalize_keywords(source)
         # print(source)
         # print('--------------')
