@@ -235,6 +235,8 @@ class SQLiteLogger:
             return self.__deblobify(result[0]), self.__deblobify(result[1])
 
     def get_or_set_subject_condition(self, subject_id, condition_to_set):
+        if subject_id is None:
+            return condition_to_set
         with self.__connect() as conn:
             c = conn.cursor()
             c.execute(f"SELECT IsInterventionGroup FROM {SUBJECT_TABLE} WHERE SubjectID = ?", (subject_id,))
