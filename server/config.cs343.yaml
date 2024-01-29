@@ -39,6 +39,9 @@ conditions:
   # A map of problems where manual assignment should override the
   # primary assignment strategy. Values include "control" and "intervention".
   manually_assigned_problems:
+    # Note: I think a config error means that these 2 problems
+    # Weren't actually assigned to intervention-all, and just used
+    # regular assignment instead... :(
     '30': intervention
     '32': intervention
     '20': control
