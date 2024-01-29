@@ -39,11 +39,11 @@ conditions:
   # A map of problems where manual assignment should override the
   # primary assignment strategy. Values include "control" and "intervention".
   manually_assigned_problems:
-    30: intervention
-    32: intervention
-    20: control
-    21: control
-    25: control
-    22: control
-    36: control
+    '30': intervention
+    '32': intervention
+    '20': control
+    '21': control
+    '25': control
+    '22': control
+    '36': control
     # TODO: Add additional assessment problems if needed
