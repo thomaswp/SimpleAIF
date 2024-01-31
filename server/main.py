@@ -1,9 +1,10 @@
 import sys, os, datetime, traceback, random
 import yaml
+import time
 # Needed, since this is run in a subfolder
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from flask import Flask, request, render_template_string
+from flask import Flask, request, render_template_string, g
 from flask_restful import Resource
 from flask_cors import CORS
 from shared.data import SQLiteLogger
@@ -259,6 +260,17 @@ def set_starter_code():
     logger = fb_gen.get_logger(LOG_DATABASE)
     logger.set_starter_code(problem_id, starter_code)
     return []
+
+# Enable to test efficiency
+# @app.before_request
+# def before_request():
+#     g.start = time.time()
+
+# @app.after_request
+# def after_request(response):
+#     diff = time.time() - g.start
+#     print (diff)
+#     return response
 
 # api.add_resource(HelloWorld, '/')
 

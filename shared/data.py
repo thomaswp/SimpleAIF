@@ -97,6 +97,13 @@ class SQLiteLogger:
         self.__add_metadata()
         self.__create_table(PROBLEM_TABLE, PROBLEM_TABLE_COLUMNS)
         self.__create_table(SUBJECT_TABLE, SUBJECT_TABLE_COLUMNS)
+        self.__add_code_index()
+
+    def __add_code_index(self):
+        with self.__connect() as conn:
+            c = conn.cursor()
+            c.execute(f"CREATE INDEX IF NOT EXISTS idx_Code ON {CODE_STATES_TABLE} (Code)")
+            conn.commit()
 
     def __add_metadata(self):
         # get the number of rows in the metadata table
@@ -140,6 +147,9 @@ class SQLiteLogger:
             conn.commit()
 
     def __get_codestate_id(self, code_state):
+        # TODO: This could be more efficient and concurrency-safe
+        # using INSERT OR IGNORE, with a UNIQUE Code column, but
+        # I'm keeping it this way for now for backwards compatibility
         result = None
         with self.__connect() as conn:
             c = conn.cursor()
